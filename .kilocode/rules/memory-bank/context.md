@@ -87,3 +87,4 @@ export async function GET() {
 | Initial | Template created with base setup |
 | 2026-03-01 | Built full Google Fit health dashboard app with OAuth, charts, and 5 pages |
 | 2026-03-01 | Fixed logout/retry buttons on error screen: added error handling for signOut, fallback redirect to /api/auth/signout, diagnostic console logs, and Link to home page as escape route |
+| 2026-03-01 | Fixed redirect loop: removed NEXTAUTH_URL from .env.local, fixed src/app/page.tsx to only redirect when accessToken exists, added /signout page, used window.location.origin for callbackUrl |
