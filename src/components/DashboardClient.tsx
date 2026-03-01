@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
+import Link from "next/link";
 import StepsChart from "@/components/charts/StepsChart";
 import HeartRateChart from "@/components/charts/HeartRateChart";
 import CaloriesChart from "@/components/charts/CaloriesChart";
@@ -213,18 +214,33 @@ export default function DashboardClient() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              console.log("[DashboardClient] Retry button clicked");
+              window.location.reload();
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
             Tentar novamente
           </button>
           <button
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => {
+              console.log("[DashboardClient] Logout button clicked, calling signOut");
+              signOut({ callbackUrl: "/" }).catch((err) => {
+                console.error("[DashboardClient] signOut error:", err);
+                window.location.href = "/api/auth/signout";
+              });
+            }}
             className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors text-sm"
           >
             Fazer logout
           </button>
         </div>
+        <Link
+          href="/"
+          className="text-xs text-slate-500 hover:text-slate-300 underline mt-1"
+        >
+          Ir para a página inicial
+        </Link>
       </div>
     );
   }
