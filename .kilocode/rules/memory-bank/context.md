@@ -2,7 +2,7 @@
 
 ## Current State
 
-**Template Status**: ✅ Ready for development
+**Template Status**: ✅ Ready for development — Google Fit dashboard app active
 
 The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. It's ready for AI-assisted expansion to build any type of application.
 
@@ -86,3 +86,4 @@ export async function GET() {
 |------|---------|
 | Initial | Template created with base setup |
 | 2026-03-01 | Built full Google Fit health dashboard app with OAuth, charts, and 5 pages |
+| 2026-03-01 | Fixed logout/retry buttons on error screen: added error handling for signOut, fallback redirect to /api/auth/signout, diagnostic console logs, and Link to home page as escape route |

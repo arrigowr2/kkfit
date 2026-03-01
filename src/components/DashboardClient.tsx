@@ -225,7 +225,7 @@ export default function DashboardClient() {
           <button
             onClick={() => {
               console.log("[DashboardClient] Logout button clicked, calling signOut");
-              signOut({ callbackUrl: "/" }).catch((err) => {
+              signOut({ callbackUrl: `${window.location.origin}/` }).catch((err) => {
                 console.error("[DashboardClient] signOut error:", err);
                 window.location.href = "/api/auth/signout";
               });
@@ -235,12 +235,21 @@ export default function DashboardClient() {
             Fazer logout
           </button>
         </div>
-        <Link
-          href="/"
-          className="text-xs text-slate-500 hover:text-slate-300 underline mt-1"
-        >
-          Ir para a página inicial
-        </Link>
+        <div className="flex gap-3 mt-1">
+          <Link
+            href="/signout"
+            className="text-xs text-slate-500 hover:text-slate-300 underline"
+          >
+            Forçar logout
+          </Link>
+          <span className="text-slate-700 text-xs">·</span>
+          <Link
+            href="/"
+            className="text-xs text-slate-500 hover:text-slate-300 underline"
+          >
+            Ir para a página inicial
+          </Link>
+        </div>
       </div>
     );
   }
