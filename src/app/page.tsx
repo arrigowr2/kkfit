@@ -1,3 +1,13 @@
-export default function Home() {
-  return <main className="min-h-screen bg-neutral-900" />;
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import LoginPage from "@/components/LoginPage";
+
+export default async function Home() {
+  const session = await auth();
+
+  if (session) {
+    redirect("/dashboard");
+  }
+
+  return <LoginPage />;
 }
