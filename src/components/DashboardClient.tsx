@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { signOut } from "next-auth/react";
 import StepsChart from "@/components/charts/StepsChart";
 import HeartRateChart from "@/components/charts/HeartRateChart";
 import CaloriesChart from "@/components/charts/CaloriesChart";
@@ -140,7 +141,11 @@ export default function DashboardClient() {
   useEffect(() => {
     fetch("/api/fitness/summary")
       .then((res) => {
-        if (!res.ok) throw new Error("Falha ao carregar dados");
+        if (!res.ok) {
+          return res.json().then((body) => {
+            throw new Error(body?.error || "Falha ao carregar dados");
+          });
+        }
         return res.json();
       })
       .then((d) => {
@@ -163,20 +168,63 @@ export default function DashboardClient() {
   }
 
   if (error) {
+    const isFitnessApiError = error.includes("403") || error.includes("fitness") || error.includes("Fitness");
+    const isUnauthorized = error.includes("401") || error.includes("Unauthorized");
+
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4">
         <div className="text-4xl">⚠️</div>
-        <p className="text-red-400 font-medium">{error}</p>
-        <p className="text-slate-500 text-sm text-center max-w-md">
-          Verifique se você concedeu as permissões necessárias ao Google Fit e
-          tente novamente.
-        </p>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-        >
-          Tentar novamente
-        </button>
+        <p className="text-red-400 font-medium text-center">Erro ao carregar dados do Google Fit</p>
+        <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 max-w-lg w-full space-y-3">
+          <p className="text-slate-300 text-sm font-medium">Detalhes do erro:</p>
+          <p className="text-red-300 text-xs font-mono bg-slate-800 rounded p-2 break-all">{error}</p>
+
+          {isFitnessApiError && (
+            <div className="text-slate-400 text-sm space-y-1">
+              <p className="font-medium text-yellow-400">🔧 Possível solução:</p>
+              <p>A <strong className="text-white">Fitness API</strong> pode não estar ativada no Google Cloud Console.</p>
+              <ol className="list-decimal list-inside space-y-1 text-xs mt-2">
+                <li>Acesse <span className="text-blue-400">console.cloud.google.com</span></li>
+                <li>Vá em <strong className="text-white">APIs &amp; Services → Library</strong></li>
+                <li>Busque por <strong className="text-white">&quot;Fitness API&quot;</strong></li>
+                <li>Clique em <strong className="text-white">Enable</strong></li>
+                <li>Faça logout e login novamente para renovar as permissões</li>
+              </ol>
+            </div>
+          )}
+
+          {isUnauthorized && (
+            <div className="text-slate-400 text-sm space-y-1">
+              <p className="font-medium text-yellow-400">🔧 Possível solução:</p>
+              <p>Sua sessão expirou. Faça logout e login novamente.</p>
+            </div>
+          )}
+
+          {!isFitnessApiError && !isUnauthorized && (
+            <div className="text-slate-400 text-sm space-y-1">
+              <p className="font-medium text-yellow-400">🔧 Possíveis soluções:</p>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li>Verifique se a <strong className="text-white">Fitness API</strong> está ativada no Google Cloud Console</li>
+                <li>Verifique se você concedeu todas as permissões ao fazer login</li>
+                <li>Faça logout e login novamente</li>
+              </ul>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+          >
+            Tentar novamente
+          </button>
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors text-sm"
+          >
+            Fazer logout
+          </button>
+        </div>
       </div>
     );
   }

@@ -40,8 +40,9 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching fitness summary:", error);
+    const message = error instanceof Error ? error.message : "Failed to fetch fitness data";
     return NextResponse.json(
-      { error: "Failed to fetch fitness data" },
+      { error: message },
       { status: 500 }
     );
   }
