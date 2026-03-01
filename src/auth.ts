@@ -31,11 +31,50 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
+        token.expiresAtMs = account.expires_at
+          ? account.expires_at * 1000
+          : Date.now() + 3600 * 1000;
       }
-      return token;
+
+      // If token is still valid, return it as-is
+      if (token.expiresAtMs && Date.now() < (token.expiresAtMs as number)) {
+        return token;
+      }
+
+      // Token expired — try to refresh using the refresh token
+      if (!token.refreshToken) {
+        return { ...token, accessToken: undefined };
+      }
+
+      try {
+        const response = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: process.env.GOOGLE_CLIENT_ID!,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+            grant_type: "refresh_token",
+            refresh_token: token.refreshToken as string,
+          }),
+        });
+
+        const refreshed = await response.json();
+
+        if (!response.ok) {
+          return { ...token, accessToken: undefined };
+        }
+
+        return {
+          ...token,
+          accessToken: refreshed.access_token,
+          expiresAtMs: Date.now() + (refreshed.expires_in ?? 3600) * 1000,
+        };
+      } catch {
+        return { ...token, accessToken: undefined };
+      }
     },
     async session({ session, token }) {
-      session.accessToken = token.accessToken as string;
+      session.accessToken = token.accessToken as string | undefined;
       return session;
     },
   },
