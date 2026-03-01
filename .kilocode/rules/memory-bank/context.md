@@ -85,3 +85,4 @@ export async function GET() {
 | Date | Changes |
 |------|---------|
 | Initial | Template created with base setup |
+| 2026-03-01 | Built full Google Fit health dashboard app with OAuth, charts, and 5 pages |
