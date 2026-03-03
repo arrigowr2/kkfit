@@ -1,59 +1,52 @@
 import { NextResponse } from "next/server";
 import * as fs from "fs";
 import * as path from "path";
-import { fileURLToPath } from "url";
-
-// Get the directory of this file and resolve to project root
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const projectRoot = path.resolve(__dirname, "../../../../");
 
 export async function GET() {
-  try {
-    // Try multiple possible paths for the file
-    const possiblePaths = [
-      path.join(projectRoot, "public", "kkfit-deployment.zip"),
-      path.join(process.cwd(), "public", "kkfit-deployment.zip"),
-      path.join(process.cwd(), "..", "public", "kkfit-deployment.zip"),
-    ];
-    
-    let filePath = "";
-    for (const p of possiblePaths) {
-      if (fs.existsSync(p)) {
-        filePath = p;
+  const fileName = "kkfit-deployment.zip";
+  
+  // Try multiple possible paths
+  const possiblePaths = [
+    path.join(process.cwd(), "public", fileName),
+    path.join(process.cwd(), "..", "public", fileName),
+    path.join(process.cwd(), "..", "..", "public", fileName),
+  ];
+
+  let fileBuffer: Buffer | null = null;
+
+  for (const filePath of possiblePaths) {
+    try {
+      if (fs.existsSync(filePath)) {
+        fileBuffer = fs.readFileSync(filePath);
+        console.log("Found file at:", filePath);
         break;
       }
+    } catch (e) {
+      console.log("Error checking path:", filePath, e);
+    }
+  }
+
+  if (!fileBuffer) {
+    // Try to list what's in public
+    try {
+      const publicDir = path.join(process.cwd(), "public");
+      const files = fs.readdirSync(publicDir);
+      console.log("Files in public:", files);
+    } catch (e) {
+      console.log("Could not read public dir");
     }
     
-    if (!filePath) {
-      console.error("File not found in any of these paths:", possiblePaths);
-      return NextResponse.json(
-        { error: "Arquivo não encontrado" },
-        { status: 404 }
-      );
-    }
-
-    // Read the file
-    const fileBuffer = fs.readFileSync(filePath);
-    
-    // Get file stats for size
-    const stats = fs.statSync(filePath);
-    const fileSizeInKB = Math.round(stats.size / 1024);
-
-    // Return the file with proper headers for download
-    return new NextResponse(fileBuffer, {
-      headers: {
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="kkfit-deployment.zip"`,
-        "Content-Length": stats.size.toString(),
-        "X-File-Size-KB": fileSizeInKB.toString(),
-      },
-    });
-  } catch (error) {
-    console.error("Error serving download:", error);
     return NextResponse.json(
-      { error: "Erro ao processar download" },
-      { status: 500 }
+      { error: "File not found", tried: possiblePaths },
+      { status: 404 }
     );
   }
+
+  return new NextResponse(new Uint8Array(fileBuffer), {
+    headers: {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${fileName}"`,
+      "Content-Length": fileBuffer.length.toString(),
+    },
+  });
 }

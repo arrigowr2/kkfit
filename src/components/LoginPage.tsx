@@ -88,8 +88,7 @@ export default function LoginPage() {
               Quer rodar o projeto localmente?
             </p>
             <a
-              href="/kkfit-deployment.zip"
-              download="kkfit-deployment.zip"
+              href="/api/download"
               className="flex items-center justify-center gap-2 w-full py-3 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all duration-200 shadow-lg"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
