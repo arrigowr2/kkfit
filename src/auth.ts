@@ -3,9 +3,29 @@ import Google from "next-auth/providers/google";
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID!;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET!;
-const nextAuthUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL ? `https://${process.env.NEXTAUTH_URL || process.env.VERCEL_URL}` : "http://localhost:3000";
+const authSecret = process.env.AUTH_SECRET!;
+const nextAuthUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL 
+  ? `https://${process.env.NEXTAUTH_URL || process.env.VERCEL_URL}` 
+  : process.env.NODE_ENV === "production" 
+    ? undefined 
+    : "http://localhost:3000";
+
+// Validate required environment variables in production
+if (!googleClientId || !googleClientSecret || !authSecret) {
+  const missing = [];
+  if (!googleClientId) missing.push("GOOGLE_CLIENT_ID");
+  if (!googleClientSecret) missing.push("GOOGLE_CLIENT_SECRET");
+  if (!authSecret) missing.push("AUTH_SECRET");
+  
+  console.error(`[Auth] Missing environment variables: ${missing.join(", ")}`);
+  
+  if (process.env.NODE_ENV === "production") {
+    console.error("[Auth] Please configure these variables in Vercel Dashboard > Settings > Environment Variables");
+  }
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: authSecret,
   trustHost: true,
   providers: [
     Google({
