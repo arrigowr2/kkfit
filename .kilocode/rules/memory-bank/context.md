@@ -98,3 +98,5 @@ export async function GET() {
 | 2026-03-03 | Fixed download: moved kkfit-deployment.zip from downloads/ to public/ for static serving |
 | 2026-03-03 | Fixed Vercel deployment error: created vercel.json with correct outputDirectory (.next), removed hardcoded URL in auth.ts, added .env.example for Vercel env vars |
 | 2026-03-03 | Updated vercel.json to use npm instead of bun for build compatibility |
+| 2026-03-03 | Fixed auth.ts: added explicit AUTH_SECRET configuration and validation for environment variables |
+| 2026-03-03 | Pushed all changes to remote |
