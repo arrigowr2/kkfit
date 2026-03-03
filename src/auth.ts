@@ -12,7 +12,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: googleClientSecret,
       authorization: {
         params: {
-          redirect_uri: "https://pale-ray-3311.d.kiloapps.io/api/auth/callback/google",
+          redirect_uri: process.env.NEXTAUTH_URL 
+            ? `${process.env.NEXTAUTH_URL}/api/auth/callback/google`
+            : "https://pale-ray-3311.d.kiloapps.io/api/auth/callback/google",
           scope: [
             "openid",
             "email",
