@@ -89,3 +89,4 @@ export async function GET() {
 | 2026-03-01 | Fixed logout/retry buttons on error screen: added error handling for signOut, fallback redirect to /api/auth/signout, diagnostic console logs, and Link to home page as escape route |
 | 2026-03-01 | Fixed redirect loop: removed NEXTAUTH_URL from .env.local, fixed src/app/page.tsx to only redirect when accessToken exists, added /signout page, used window.location.origin for callbackUrl |
 | 2026-03-01 | Fixed NextAuth server error: AUTH_SECRET was too short (917346), replaced with secure 32-byte secret generated with openssl rand -base64 32, added NEXTAUTH_URL for production
+| 2026-03-03 | Committed Google Fit dashboard app with all changes pushed to remote |
