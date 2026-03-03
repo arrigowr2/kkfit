@@ -72,10 +72,13 @@ function formatDate(timestamp: number): string {
 
 export async function getStepsData(
   accessToken: string,
-  days: number = 30
+  days: number = 30,
+  specificDate?: string
 ): Promise<DailySteps[]> {
-  const endTime = new Date();
-  const startTime = new Date();
+  const endTime = specificDate 
+    ? new Date(specificDate + "T23:59:59") 
+    : new Date();
+  const startTime = new Date(endTime);
   startTime.setDate(startTime.getDate() - days);
 
   const body = {
@@ -114,10 +117,13 @@ export async function getStepsData(
 
 export async function getCaloriesData(
   accessToken: string,
-  days: number = 30
+  days: number = 30,
+  specificDate?: string
 ): Promise<DailyCalories[]> {
-  const endTime = new Date();
-  const startTime = new Date();
+  const endTime = specificDate 
+    ? new Date(specificDate + "T23:59:59") 
+    : new Date();
+  const startTime = new Date(endTime);
   startTime.setDate(startTime.getDate() - days);
 
   const body = {
@@ -154,10 +160,13 @@ export async function getCaloriesData(
 
 export async function getHeartRateData(
   accessToken: string,
-  days: number = 30
+  days: number = 30,
+  specificDate?: string
 ): Promise<HeartRateData[]> {
-  const endTime = new Date();
-  const startTime = new Date();
+  const endTime = specificDate 
+    ? new Date(specificDate + "T23:59:59") 
+    : new Date();
+  const startTime = new Date(endTime);
   startTime.setDate(startTime.getDate() - days);
 
   const body = {
@@ -201,10 +210,13 @@ export async function getHeartRateData(
 
 export async function getSleepData(
   accessToken: string,
-  days: number = 30
+  days: number = 30,
+  specificDate?: string
 ): Promise<SleepData[]> {
-  const endTime = new Date();
-  const startTime = new Date();
+  const endTime = specificDate 
+    ? new Date(specificDate + "T23:59:59") 
+    : new Date();
+  const startTime = new Date(endTime);
   startTime.setDate(startTime.getDate() - days);
 
   const body = {
@@ -251,10 +263,13 @@ export async function getSleepData(
 
 export async function getWeightData(
   accessToken: string,
-  days: number = 90
+  days: number = 90,
+  specificDate?: string
 ): Promise<WeightData[]> {
-  const endTime = new Date();
-  const startTime = new Date();
+  const endTime = specificDate 
+    ? new Date(specificDate + "T23:59:59") 
+    : new Date();
+  const startTime = new Date(endTime);
   startTime.setDate(startTime.getDate() - days);
 
   const body = {
@@ -290,10 +305,13 @@ export async function getWeightData(
 
 export async function getActivityData(
   accessToken: string,
-  days: number = 30
+  days: number = 30,
+  specificDate?: string
 ): Promise<ActivityData[]> {
-  const endTime = new Date();
-  const startTime = new Date();
+  const endTime = specificDate 
+    ? new Date(specificDate + "T23:59:59") 
+    : new Date();
+  const startTime = new Date(endTime);
   startTime.setDate(startTime.getDate() - days);
 
   const [activeMinutesData, distanceData] = await Promise.all([
@@ -366,6 +384,77 @@ export async function getTodaySummary(accessToken: string) {
     bucketByTime: { durationMillis: 86400000 },
     startTimeMillis: today.getTime(),
     endTimeMillis: tomorrow.getTime(),
+  };
+
+  const data = await fetchFitData(accessToken, "/dataset:aggregate", body);
+
+  let steps = 0,
+    calories = 0,
+    activeMinutes = 0,
+    distance = 0;
+
+  if (data.bucket?.[0]) {
+    const bucket = data.bucket[0];
+    for (const dataset of bucket.dataset || []) {
+      for (const point of dataset.point || []) {
+        const typeName = dataset.dataSourceId || "";
+        if (typeName.includes("step_count")) {
+          steps += point.value?.[0]?.intVal || 0;
+        } else if (typeName.includes("calories")) {
+          calories += point.value?.[0]?.fpVal || 0;
+        } else if (typeName.includes("active_minutes")) {
+          activeMinutes += point.value?.[0]?.intVal || 0;
+        } else if (typeName.includes("distance")) {
+          distance += point.value?.[0]?.fpVal || 0;
+        }
+      }
+    }
+
+    // Try by index if dataSourceId doesn't match
+    if (steps === 0 && calories === 0) {
+      const datasets = bucket.dataset || [];
+      if (datasets[0]?.point?.length > 0) {
+        for (const p of datasets[0].point) steps += p.value?.[0]?.intVal || 0;
+      }
+      if (datasets[1]?.point?.length > 0) {
+        for (const p of datasets[1].point)
+          calories += p.value?.[0]?.fpVal || 0;
+      }
+      if (datasets[2]?.point?.length > 0) {
+        for (const p of datasets[2].point)
+          activeMinutes += p.value?.[0]?.intVal || 0;
+      }
+      if (datasets[3]?.point?.length > 0) {
+        for (const p of datasets[3].point)
+          distance += p.value?.[0]?.fpVal || 0;
+      }
+    }
+  }
+
+  return {
+    steps,
+    calories: Math.round(calories),
+    activeMinutes,
+    distance: Math.round(distance),
+  };
+}
+
+// Get data for a specific date
+export async function getDailyData(accessToken: string, dateStr: string) {
+  const targetDate = new Date(dateStr + "T00:00:00");
+  const endDate = new Date(targetDate);
+  endDate.setDate(endDate.getDate() + 1);
+
+  const body = {
+    aggregateBy: [
+      { dataTypeName: "com.google.step_count.delta" },
+      { dataTypeName: "com.google.calories.expended" },
+      { dataTypeName: "com.google.active_minutes" },
+      { dataTypeName: "com.google.distance.delta" },
+    ],
+    bucketByTime: { durationMillis: 86400000 },
+    startTimeMillis: targetDate.getTime(),
+    endTimeMillis: endDate.getTime(),
   };
 
   const data = await fetchFitData(accessToken, "/dataset:aggregate", body);

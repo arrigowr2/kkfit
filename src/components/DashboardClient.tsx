@@ -138,8 +138,42 @@ export default function DashboardClient() {
   const [data, setData] = useState<FitnessData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(""); // empty = today
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // Quick date options
+  const quickDates = [
+    { label: "Hoje", value: "", getDate: () => new Date() },
+    { label: "Ontem", value: "yesterday", getDate: () => { const d = new Date(); d.setDate(d.getDate() - 1); return d; } },
+  ];
+
+  const fetchData = (date: string) => {
+    setLoading(true);
+    setError(null);
+    const url = date ? `/api/fitness/summary?date=${date}` : "/api/fitness/summary";
+    fetch(url)
+      .then((res) => {
+        if (!res.ok) {
+          return res.json().then((body) => {
+            throw new Error(body?.error || "Falha ao carregar dados");
+          });
+        }
+        return res.json();
+      })
+      .then((d) => {
+        setData(d);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  };
+
+  // Initial data fetch
   useEffect(() => {
+    setLoading(true);
+    setError(null);
     fetch("/api/fitness/summary")
       .then((res) => {
         if (!res.ok) {
@@ -157,7 +191,30 @@ export default function DashboardClient() {
         setError(err.message);
         setLoading(false);
       });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
   }, []);
+
+  const handleQuickDate = (value: string) => {
+    setSelectedDate(value);
+    setShowDatePicker(false);
+    fetchData(value);
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const dateValue = e.target.value;
+    if (dateValue) {
+      // Convert to the format expected by API
+      const date = new Date(dateValue);
+      const dateStr = date.toISOString().split("T")[0];
+      setSelectedDate(dateStr);
+      setShowDatePicker(false);
+      fetchData(dateStr);
+    } else {
+      setSelectedDate("");
+      setShowDatePicker(false);
+      fetchData("");
+    }
+  };
 
   if (loading) {
     return (
@@ -285,12 +342,63 @@ export default function DashboardClient() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Visão Geral</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Seus dados de saúde dos últimos 30 dias
-        </p>
+      {/* Header with Date Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Visão Geral</h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Seus dados de saúde dos últimos 30 dias
+          </p>
+        </div>
+        
+        {/* Date Selector */}
+        <div className="flex items-center gap-2">
+          {/* Quick date buttons */}
+          {quickDates.map((q) => (
+            <button
+              key={q.value}
+              onClick={() => handleQuickDate(q.value)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                selectedDate === q.value
+                  ? "bg-blue-500 text-white"
+                  : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+              }`}
+            >
+              {q.label}
+            </button>
+          ))}
+          
+          {/* Custom date picker */}
+          <div className="relative">
+            <button
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
+                selectedDate && !quickDates.find(q => q.value === selectedDate)
+                  ? "bg-blue-500 text-white"
+                  : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {selectedDate && !quickDates.find(q => q.value === selectedDate) 
+                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR")
+                : "Personalizado"}
+            </button>
+            
+            {showDatePicker && (
+              <div className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-10">
+                <input
+                  type="date"
+                  onChange={handleDateChange}
+                  max={new Date().toISOString().split("T")[0]}
+                  className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 focus:outline-none"
+                />
+                <p className="text-xs text-slate-500 mt-2">Selecione uma data específica</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Today's summary */}
