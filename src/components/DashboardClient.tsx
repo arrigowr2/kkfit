@@ -138,8 +138,9 @@ export default function DashboardClient() {
   const [data, setData] = useState<FitnessData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>(""); // empty = today
+  const [selectedDate, setSelectedDate] = useState<string>("");
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showAverages, setShowAverages] = useState(false);
 
   // Quick date options
   const quickDates = [
@@ -315,6 +316,13 @@ export default function DashboardClient() {
   const caloriesGoal = 2000;
   const activeMinutesGoal = 30;
 
+  // Check if today's data exists
+  const hasStepsData = today && today.steps > 0;
+  const hasCaloriesData = today && today.calories > 0;
+  const hasActiveMinutesData = today && today.activeMinutes > 0;
+  const hasDistanceData = today && (today.distance || 0) > 0;
+
+  // Calculate averages only if there's data
   const avgSteps =
     data?.steps && data.steps.length > 0
       ? Math.round(
@@ -338,6 +346,9 @@ export default function DashboardClient() {
     data?.heartRate && data.heartRate.length > 0
       ? data.heartRate[data.heartRate.length - 1].avg
       : null;
+
+  // Show/hide averages section
+  const hasAveragesData = avgSteps > 0 || avgSleep > 0 || latestWeight !== null || latestHeartRate !== null;
 
   return (
     <div className="space-y-6">
@@ -400,89 +411,122 @@ export default function DashboardClient() {
         </div>
       </div>
 
-      {/* Today's summary */}
-      <div>
-        <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-3">
-          Hoje
-        </h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            icon="👟"
-            label="Passos"
-            value={(today?.steps || 0).toLocaleString("pt-BR")}
-            unit="passos"
-            color="text-blue-400"
-            progress={today ? (today.steps / stepsGoal) * 100 : 0}
-            goal={`${stepsGoal.toLocaleString("pt-BR")}`}
-          />
-          <StatCard
-            icon="🔥"
-            label="Calorias"
-            value={(today?.calories || 0).toLocaleString("pt-BR")}
-            unit="kcal"
-            color="text-orange-400"
-            progress={today ? (today.calories / caloriesGoal) * 100 : 0}
-            goal={`${caloriesGoal.toLocaleString("pt-BR")} kcal`}
-          />
-          <StatCard
-            icon="⚡"
-            label="Min. Ativos"
-            value={today?.activeMinutes || 0}
-            unit="min"
-            color="text-yellow-400"
-            progress={
-              today ? (today.activeMinutes / activeMinutesGoal) * 100 : 0
-            }
-            goal={`${activeMinutesGoal} min`}
-          />
-          <StatCard
-            icon="📍"
-            label="Distância"
-            value={
-              today ? ((today.distance || 0) / 1000).toFixed(2) : "0.00"
-            }
-            unit="km"
-            color="text-cyan-400"
-          />
+      {/* Today's summary - only show if there's data */}
+      {today && (hasStepsData || hasCaloriesData || hasActiveMinutesData || hasDistanceData) && (
+        <div>
+          <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-3">
+            Hoje
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {hasStepsData && (
+              <StatCard
+                icon="👟"
+                label="Passos"
+                value={(today?.steps || 0).toLocaleString("pt-BR")}
+                unit="passos"
+                color="text-blue-400"
+                progress={today ? (today.steps / stepsGoal) * 100 : 0}
+                goal={`${stepsGoal.toLocaleString("pt-BR")}`}
+              />
+            )}
+            {hasCaloriesData && (
+              <StatCard
+                icon="🔥"
+                label="Calorias"
+                value={(today?.calories || 0).toLocaleString("pt-BR")}
+                unit="kcal"
+                color="text-orange-400"
+                progress={today ? (today.calories / caloriesGoal) * 100 : 0}
+                goal={`${caloriesGoal.toLocaleString("pt-BR")} kcal`}
+              />
+            )}
+            {hasActiveMinutesData && (
+              <StatCard
+                icon="⚡"
+                label="Min. Ativos"
+                value={today?.activeMinutes || 0}
+                unit="min"
+                color="text-yellow-400"
+                progress={
+                  today ? (today.activeMinutes / activeMinutesGoal) * 100 : 0
+                }
+                goal={`${activeMinutesGoal} min`}
+              />
+            )}
+            {hasDistanceData && (
+              <StatCard
+                icon="📍"
+                label="Distância"
+                value={
+                  today ? ((today.distance || 0) / 1000).toFixed(2) : "0.00"
+                }
+                unit="km"
+                color="text-cyan-400"
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 30-day averages */}
-      <div>
-        <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-3">
-          Médias (30 dias)
-        </h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            icon="📊"
-            label="Média de Passos"
-            value={avgSteps.toLocaleString("pt-BR")}
-            unit="passos/dia"
-            color="text-blue-400"
-          />
-          <StatCard
-            icon="😴"
-            label="Média de Sono"
-            value={`${Math.floor(avgSleep / 60)}h ${avgSleep % 60}min`}
-            unit=""
-            color="text-purple-400"
-          />
-          <StatCard
-            icon="⚖️"
-            label="Peso Atual"
-            value={latestWeight ? latestWeight.toFixed(1) : "—"}
-            unit="kg"
-            color="text-emerald-400"
-          />
-          <StatCard
-            icon="❤️"
-            label="Freq. Cardíaca"
-            value={latestHeartRate || "—"}
-            unit="bpm"
-            color="text-red-400"
-          />
+      {/* 30-day averages - collapsible, only show if there's data */}
+      {hasAveragesData && (
+        <div>
+          <button
+            onClick={() => setShowAverages(!showAverages)}
+            className="flex items-center gap-2 text-sm font-medium text-slate-400 uppercase tracking-wide mb-3 hover:text-white transition-colors"
+          >
+            <svg
+              className={`w-4 h-4 transition-transform ${showAverages ? "rotate-90" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            Médias (30 dias)
+          </button>
+          {showAverages && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {avgSteps > 0 && (
+                <StatCard
+                  icon="📊"
+                  label="Média de Passos"
+                  value={avgSteps.toLocaleString("pt-BR")}
+                  unit="passos/dia"
+                  color="text-blue-400"
+                />
+              )}
+              {avgSleep > 0 && (
+                <StatCard
+                  icon="😴"
+                  label="Média de Sono"
+                  value={`${Math.floor(avgSleep / 60)}h ${avgSleep % 60}min`}
+                  unit=""
+                  color="text-purple-400"
+                />
+              )}
+              {latestWeight !== null && (
+                <StatCard
+                  icon="⚖️"
+                  label="Peso Atual"
+                  value={latestWeight.toFixed(1)}
+                  unit="kg"
+                  color="text-emerald-400"
+                />
+              )}
+              {latestHeartRate !== null && (
+                <StatCard
+                  icon="❤️"
+                  label="Freq. Cardíaca"
+                  value={latestHeartRate}
+                  unit="bpm"
+                  color="text-red-400"
+                />
+              )}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
