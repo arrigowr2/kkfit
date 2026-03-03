@@ -16,7 +16,7 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Recipe system for common features
 - [x] Download page for kkfit-deployment.zip (fixed with proper download attribute and fallback link)
 - [x] Added download button directly on login page
-- [x] Fixed download API to try multiple file paths for cross-platform compatibility
+- [x] Fixed download: moved kkfit-deployment.zip from downloads/ to public/ folder for static serving
 
 ## Current Structure
 
@@ -94,4 +94,4 @@ export async function GET() {
 | 2026-03-01 | Fixed NextAuth server error: AUTH_SECRET was too short (917346), replaced with secure 32-byte secret generated with openssl rand -base64 32, added NEXTAUTH_URL for production
 | 2026-03-03 | Committed Google Fit dashboard app with all changes pushed to remote |
 | 2026-03-03 | Created download page for kkfit-deployment.zip at /download |
-| 2026-03-03 | Fixed download API to try multiple file paths for cross-platform compatibility |
+| 2026-03-03 | Fixed download: moved kkfit-deployment.zip from downloads/ to public/ for static serving |
