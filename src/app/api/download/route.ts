@@ -1,13 +1,32 @@
 import { NextResponse } from "next/server";
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
+
+// Get the directory of this file and resolve to project root
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, "../../../../");
 
 export async function GET() {
   try {
-    const filePath = path.join(process.cwd(), "public", "kkfit-deployment.zip");
+    // Try multiple possible paths for the file
+    const possiblePaths = [
+      path.join(projectRoot, "public", "kkfit-deployment.zip"),
+      path.join(process.cwd(), "public", "kkfit-deployment.zip"),
+      path.join(process.cwd(), "..", "public", "kkfit-deployment.zip"),
+    ];
     
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
+    let filePath = "";
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        filePath = p;
+        break;
+      }
+    }
+    
+    if (!filePath) {
+      console.error("File not found in any of these paths:", possiblePaths);
       return NextResponse.json(
         { error: "Arquivo não encontrado" },
         { status: 404 }
