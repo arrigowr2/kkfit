@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function DownloadPage() {
   const fileName = "kkfit-deployment.zip";
-  const fileSize = "158 KB";
+  const fileSize = "54 KB";
   const downloadUrl = "/kkfit-deployment.zip";
 
   return (
@@ -70,6 +70,17 @@ export default function DownloadPage() {
             </svg>
             <span>Download Now</span>
           </a>
+
+          {/* Direct Link */}
+          <p className="mt-4 text-center">
+            <a
+              href={downloadUrl}
+              download={fileName}
+              className="text-blue-400 hover:text-blue-300 underline text-sm"
+            >
+              Click here if the download does not start
+            </a>
+          </p>
 
           {/* Additional Info */}
           <p className="mt-6 text-center text-sm text-slate-500">
