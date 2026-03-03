@@ -1,11 +1,14 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 
+const googleClientId = process.env.GOOGLE_CLIENT_ID!;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET!;
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
       authorization: {
         params: {
           scope: [
@@ -25,7 +28,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  trustHost: true,
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // Always redirect to /dashboard after login
+      if (url.startsWith("/")) {
+        return `${baseUrl}/dashboard`;
+      }
+      return baseUrl;
+    },
     async jwt({ token, account }) {
       if (account) {
         token.accessToken = account.access_token;
