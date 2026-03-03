@@ -5,12 +5,14 @@ const googleClientId = process.env.GOOGLE_CLIENT_ID!;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET!;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   providers: [
     Google({
       clientId: googleClientId,
       clientSecret: googleClientSecret,
       authorization: {
         params: {
+          redirect_uri: "https://pale-ray-3311.d.kiloapps.io/api/auth/callback/google",
           scope: [
             "openid",
             "email",
@@ -28,7 +30,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  trustHost: true,
   callbacks: {
     async redirect({ url, baseUrl }) {
       // Always redirect to /dashboard after login
