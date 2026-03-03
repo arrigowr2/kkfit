@@ -17,13 +17,6 @@
 /.next/
 /out/
 
-# google-fit-render build
-google-fit-render/.next/
-google-fit-render/out/
-google-fit-render/build/
-google-fit-render/node_modules/
-google-fit-render/package-lock.json
-
 # production
 /build
 
