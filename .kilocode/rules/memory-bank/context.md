@@ -17,6 +17,7 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Download page for kkfit-deployment.zip (fixed with proper download attribute and fallback link)
 - [x] Added download button directly on login page
 - [x] Fixed download: moved kkfit-deployment.zip from downloads/ to public/ folder for static serving
+- [x] Fixed download: use API route at /api/download with dynamic file path detection
 
 ## Current Structure
 
