@@ -96,3 +96,4 @@ export async function GET() {
 | 2026-03-03 | Committed Google Fit dashboard app with all changes pushed to remote |
 | 2026-03-03 | Created download page for kkfit-deployment.zip at /download |
 | 2026-03-03 | Fixed download: moved kkfit-deployment.zip from downloads/ to public/ for static serving |
+| 2026-03-03 | Fixed Vercel deployment error: created vercel.json with correct outputDirectory (.next), removed hardcoded URL in auth.ts, added .env.example for Vercel env vars |

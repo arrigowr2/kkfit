@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID!;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET!;
+const nextAuthUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL ? `https://${process.env.NEXTAUTH_URL || process.env.VERCEL_URL}` : "http://localhost:3000";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -12,9 +13,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: googleClientSecret,
       authorization: {
         params: {
-          redirect_uri: process.env.NEXTAUTH_URL 
-            ? `${process.env.NEXTAUTH_URL}/api/auth/callback/google`
-            : "https://pale-ray-3311.d.kiloapps.io/api/auth/callback/google",
+          redirect_uri: `${nextAuthUrl}/api/auth/callback/google`,
           scope: [
             "openid",
             "email",
