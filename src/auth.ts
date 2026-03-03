@@ -4,11 +4,17 @@ import Google from "next-auth/providers/google";
 const googleClientId = process.env.GOOGLE_CLIENT_ID!;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET!;
 const authSecret = process.env.AUTH_SECRET!;
-const nextAuthUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL 
-  ? `https://${process.env.NEXTAUTH_URL || process.env.VERCEL_URL}` 
-  : process.env.NODE_ENV === "production" 
-    ? undefined 
-    : "http://localhost:3000";
+const nextAuthUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL;
+
+// Handle the URL - remove any existing protocol prefix to avoid duplication
+const normalizeUrl = (url: string | undefined) => {
+  if (!url) return undefined;
+  // Remove http:// or https:// prefix if present
+  return url.replace(/^https?:\/\//, '');
+};
+
+const normalizedNextAuthUrl = normalizeUrl(nextAuthUrl);
+const baseUrl = normalizedNextAuthUrl ? `https://${normalizedNextAuthUrl}` : undefined;
 
 // Validate required environment variables in production
 if (!googleClientId || !googleClientSecret || !authSecret) {
@@ -33,7 +39,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: googleClientSecret,
       authorization: {
         params: {
-          redirect_uri: `${nextAuthUrl}/api/auth/callback/google`,
+          redirect_uri: `${baseUrl}/api/auth/callback/google`,
           scope: [
             "openid",
             "email",
