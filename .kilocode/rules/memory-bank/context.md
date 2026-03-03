@@ -15,6 +15,7 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Memory bank documentation
 - [x] Recipe system for common features
 - [x] Download page for kkfit-deployment.zip (fixed with proper download attribute and fallback link)
+- [x] Added download button directly on login page
 
 ## Current Structure
 
