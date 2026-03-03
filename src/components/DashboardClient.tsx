@@ -191,7 +191,6 @@ export default function DashboardClient() {
         setError(err.message);
         setLoading(false);
       });
-    // eslint-disable-next-line react-hooks/set-state-in-effect
   }, []);
 
   const handleQuickDate = (value: string) => {
