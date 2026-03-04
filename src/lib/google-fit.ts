@@ -67,7 +67,11 @@ function getNanoTime(date: Date): string {
 }
 
 function formatDate(timestamp: number): string {
-  return new Date(timestamp / 1_000_000).toISOString().split("T")[0];
+  const date = new Date(timestamp / 1_000_000);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export async function getStepsData(
@@ -107,9 +111,13 @@ export async function getStepsData(
   const result: DailySteps[] = [];
   if (data.bucket) {
     for (const bucket of data.bucket) {
-      const date = new Date(parseInt(bucket.startTimeMillis))
-        .toISOString()
-        .split("T")[0];
+      const date = (() => {
+        const d = new Date(parseInt(bucket.startTimeMillis));
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      })();
       let steps = 0;
       if (bucket.dataset?.[0]?.point?.length > 0) {
         for (const point of bucket.dataset[0].point) {
@@ -157,9 +165,13 @@ export async function getCaloriesData(
   const result: DailyCalories[] = [];
   if (data.bucket) {
     for (const bucket of data.bucket) {
-      const date = new Date(parseInt(bucket.startTimeMillis))
-        .toISOString()
-        .split("T")[0];
+      const date = (() => {
+        const d = new Date(parseInt(bucket.startTimeMillis));
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      })();
       let calories = 0;
       if (bucket.dataset?.[0]?.point?.length > 0) {
         for (const point of bucket.dataset[0].point) {
@@ -200,9 +212,13 @@ export async function getHeartRateData(
   const result: HeartRateData[] = [];
   if (data.bucket) {
     for (const bucket of data.bucket) {
-      const date = new Date(parseInt(bucket.startTimeMillis))
-        .toISOString()
-        .split("T")[0];
+      const date = (() => {
+        const d = new Date(parseInt(bucket.startTimeMillis));
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      })();
       let avg = 0,
         min = 0,
         max = 0;
@@ -250,9 +266,13 @@ export async function getSleepData(
   const result: SleepData[] = [];
   if (data.bucket) {
     for (const bucket of data.bucket) {
-      const date = new Date(parseInt(bucket.startTimeMillis))
-        .toISOString()
-        .split("T")[0];
+      const date = (() => {
+        const d = new Date(parseInt(bucket.startTimeMillis));
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      })();
       let totalMinutes = 0;
       if (bucket.dataset?.[0]?.point?.length > 0) {
         for (const point of bucket.dataset[0].point) {
@@ -303,9 +323,13 @@ export async function getWeightData(
   const result: WeightData[] = [];
   if (data.bucket) {
     for (const bucket of data.bucket) {
-      const date = new Date(parseInt(bucket.startTimeMillis))
-        .toISOString()
-        .split("T")[0];
+      const date = (() => {
+        const d = new Date(parseInt(bucket.startTimeMillis));
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      })();
       if (bucket.dataset?.[0]?.point?.length > 0) {
         const weight = bucket.dataset[0].point[0].value?.[0]?.fpVal;
         if (weight) {
@@ -354,9 +378,13 @@ export async function getActivityData(
   const activeMinutesMap: Record<string, number> = {};
   if (activeMinutesData.bucket) {
     for (const bucket of activeMinutesData.bucket) {
-      const date = new Date(parseInt(bucket.startTimeMillis))
-        .toISOString()
-        .split("T")[0];
+      const date = (() => {
+        const d = new Date(parseInt(bucket.startTimeMillis));
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      })();
       let minutes = 0;
       if (bucket.dataset?.[0]?.point?.length > 0) {
         for (const point of bucket.dataset[0].point) {
@@ -370,9 +398,13 @@ export async function getActivityData(
   const result: ActivityData[] = [];
   if (distanceData.bucket) {
     for (const bucket of distanceData.bucket) {
-      const date = new Date(parseInt(bucket.startTimeMillis))
-        .toISOString()
-        .split("T")[0];
+      const date = (() => {
+        const d = new Date(parseInt(bucket.startTimeMillis));
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      })();
       let distance = 0;
       if (bucket.dataset?.[0]?.point?.length > 0) {
         for (const point of bucket.dataset[0].point) {

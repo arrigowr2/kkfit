@@ -41,14 +41,20 @@ export async function GET(request: Request) {
     targetDate = new Date();
     dateStr = "";
   } else if (isToday) {
-    // Today - use today's date
+    // Today - use today's date in local time
     targetDate = new Date();
-    dateStr = targetDate.toISOString().split("T")[0];
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    dateStr = `${year}-${month}-${day}`;
   } else if (dateParam === "yesterday") {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     targetDate = yesterday;
-    dateStr = targetDate.toISOString().split("T")[0];
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    dateStr = `${year}-${month}-${day}`;
   } else if (dateParam && dateParam !== "yesterday" && !dateParam.includes(",")) {
     // Single custom date - not multiple dates
     targetDate = new Date(dateParam + "T00:00:00");
@@ -92,7 +98,10 @@ export async function GET(request: Request) {
         distance: sumDistance
       };
     } else if (isToday) {
-      // Get today's summary and last 30 days for charts
+      // Get today's data and last 30 days for charts - but filter to only today for display
+      const todayLocal = new Date();
+      const todayStr = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
+      
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
         await Promise.all([
           getTodaySummary(session.accessToken),
@@ -103,6 +112,13 @@ export async function GET(request: Request) {
           getWeightData(session.accessToken, 90),
           getActivityData(session.accessToken, 30),
         ]);
+      
+      // Filter data to only show today (for client-side display consistency)
+      stepsData = (stepsData || []).filter(d => d.date === todayStr);
+      caloriesData = (caloriesData || []).filter(d => d.date === todayStr);
+      activityData = (activityData || []).filter(d => d.date === todayStr);
+      heartRateData = (heartRateData || []).filter(d => d.date === todayStr);
+      sleepData = (sleepData || []).filter(d => d.date === todayStr);
     } else if (isMultiple) {
       // Multiple dates - comma-separated
       const dateList = dateParam.split(",").filter(d => d.trim());
@@ -153,7 +169,7 @@ export async function GET(request: Request) {
         distance: sumDistance
       };
     } else {
-      // Get data for a specific date (yesterday or custom date)
+      // Get data for a specific date (custom date or single date)
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
         await Promise.all([
           getDailyData(session.accessToken, dateStr),
