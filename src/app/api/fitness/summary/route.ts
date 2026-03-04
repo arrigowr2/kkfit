@@ -19,14 +19,25 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const dateParam = searchParams.get("date"); // YYYY-MM-DD format, or null for today
+  const dateParam = searchParams.get("date"); // YYYY-MM-DD format, or null for today, "total" for all data
+  const mode = searchParams.get("mode"); // "multiple" for multiple dates
   const days = parseInt(searchParams.get("days") || "30");
+
+  // Check if requesting multiple dates
+  const isMultiple = mode === "multiple" && dateParam && dateParam.includes(",");
+
+  // Check if requesting all data (Total)
+  const isTotal = dateParam === "total" || dateParam === "" || dateParam === null || dateParam === undefined;
 
   // Determine the target date
   let targetDate: Date;
   let dateStr: string;
 
-  if (dateParam && dateParam !== "yesterday") {
+  if (isTotal) {
+    // Total - get all data, no specific date
+    targetDate = new Date();
+    dateStr = "";
+  } else if (dateParam && dateParam !== "yesterday") {
     targetDate = new Date(dateParam + "T00:00:00");
     dateStr = dateParam;
   } else if (dateParam === "yesterday") {
@@ -44,13 +55,25 @@ export async function GET(request: Request) {
   }
 
   // Check if requesting today or a specific date
-  const isToday = dateStr === new Date().toISOString().split("T")[0];
+  const isToday = !isTotal && dateStr === new Date().toISOString().split("T")[0];
 
   try {
     let todayData;
     let stepsData, caloriesData, heartRateData, sleepData, weightData, activityData;
 
-    if (isToday) {
+    if (isTotal) {
+      // Get all data (Total) - no specific date, get maximum historical data
+      [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
+        await Promise.all([
+          getTodaySummary(session.accessToken),
+          getStepsData(session.accessToken, 90),
+          getCaloriesData(session.accessToken, 90),
+          getHeartRateData(session.accessToken, 90),
+          getSleepData(session.accessToken, 90),
+          getWeightData(session.accessToken, 90),
+          getActivityData(session.accessToken, 90),
+        ]);
+    } else if (isToday) {
       // Get today's summary and last 30 days for charts
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
         await Promise.all([
@@ -61,6 +84,25 @@ export async function GET(request: Request) {
           getSleepData(session.accessToken, 30),
           getWeightData(session.accessToken, 90),
           getActivityData(session.accessToken, 30),
+        ]);
+    } else if (isMultiple) {
+      // Multiple dates - comma-separated
+      const dateList = dateParam.split(",").filter(d => d.trim());
+      const firstDate = dateList[0];
+      const lastDate = dateList[dateList.length - 1];
+      const first = new Date(firstDate + "T00:00:00");
+      const last = new Date(lastDate + "T00:00:00");
+      const numDays = Math.ceil((last.getTime() - first.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      // Get data for all selected dates
+      [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
+        await Promise.all([
+          getDailyData(session.accessToken, lastDate), // Latest date for today
+          getStepsData(session.accessToken, numDays, firstDate), // From first to last date
+          getCaloriesData(session.accessToken, numDays, firstDate),
+          getHeartRateData(session.accessToken, numDays, firstDate),
+          getSleepData(session.accessToken, numDays, firstDate),
+          getWeightData(session.accessToken, 90, lastDate),
+          getActivityData(session.accessToken, numDays, firstDate),
         ]);
     } else {
       // Get data for a specific date (yesterday or custom date)

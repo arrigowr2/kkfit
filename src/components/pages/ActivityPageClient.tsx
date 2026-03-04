@@ -33,18 +33,28 @@ export default function ActivityPageClient() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedMode, setSelectedMode] = useState<"today" | "yesterday" | "custom" | "total">("total");
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pendingDates, setPendingDates] = useState<string[]>([]);
 
   // Quick date options
   const quickDates = [
-    { label: "Total", value: "", mode: "total" as const },
-    { label: "Hoje", value: "", mode: "today" as const },
+    { label: "Total", value: "total", mode: "total" as const },
+    { label: "Hoje", value: "today", mode: "today" as const },
     { label: "Ontem", value: "yesterday", mode: "yesterday" as const },
   ];
 
-  const fetchData = (date: string) => {
+  const fetchData = (date: string, mode: string) => {
     setLoading(true);
-    // If total mode, fetch all data (no date filter)
-    const url = selectedMode === "total" ? "/api/fitness/summary" : (date ? `/api/fitness/summary?date=${date}` : "/api/fitness/summary");
+    // If mode is 'total', send 'total' as param; if mode is 'today', send 'today'; otherwise send the date
+    let url: string;
+    if (mode === "total") {
+      url = "/api/fitness/summary?date=total";
+    } else if (mode === "today") {
+      url = "/api/fitness/summary?date=today";
+    } else if (mode === "multiple" && date.includes(",")) {
+      url = `/api/fitness/summary?date=${date}&mode=multiple`;
+    } else {
+      url = date ? `/api/fitness/summary?date=${date}` : "/api/fitness/summary";
+    }
     fetch(url)
       .then((r) => r.json())
       .then((d) => {
@@ -54,8 +64,9 @@ export default function ActivityPageClient() {
       .catch(() => setLoading(false));
   };
 
+  // Initial data fetch - default to total mode
   useEffect(() => {
-    fetch("/api/fitness/summary")
+    fetch("/api/fitness/summary?date=total")
       .then((r) => r.json())
       .then((d) => {
         setData(d);
@@ -68,11 +79,16 @@ export default function ActivityPageClient() {
     setSelectedMode(mode);
     if (mode === "total") {
       setSelectedDate("");
-      fetchData("");
-    } else {
+      fetchData("", "total");
+    } else if (mode === "today") {
+      setSelectedDate("");
+      fetchData("", "today");
+    } else if (mode === "yesterday") {
       setSelectedDate(value);
       setShowDatePicker(false);
-      fetchData(value);
+      fetchData(value, "yesterday");
+    } else if (mode === "custom") {
+      setShowDatePicker(true);
     }
   };
 
@@ -81,14 +97,32 @@ export default function ActivityPageClient() {
     if (dateValue) {
       const date = new Date(dateValue);
       const dateStr = date.toISOString().split("T")[0];
-      setSelectedDate(dateStr);
+      // Add to pending dates (toggle)
+      setPendingDates(prev => {
+        if (prev.includes(dateStr)) {
+          return prev.filter(d => d !== dateStr);
+        }
+        return [...prev, dateStr].sort();
+      });
+    }
+  };
+
+  const handleApplyDates = () => {
+    if (pendingDates.length > 0) {
+      setSelectedDate(pendingDates.join(","));
       setSelectedMode("custom");
       setShowDatePicker(false);
-      fetchData(dateStr);
+      // Fetch data for the selected dates
+      const dateParam = pendingDates.join(",");
+      fetch(`/api/fitness/summary?date=${dateParam}&mode=multiple`)
+        .then((r) => r.json())
+        .then((d) => {
+          setData(d);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
     } else {
-      setSelectedDate("");
       setShowDatePicker(false);
-      fetchData("");
     }
   };
 
@@ -158,14 +192,45 @@ export default function ActivityPageClient() {
             </button>
             
             {showDatePicker && (
-              <div className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-10">
+              <div className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-10 min-w-[250px]">
                 <input
                   type="date"
                   onChange={handleDateChange}
                   max={new Date().toISOString().split("T")[0]}
-                  className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 focus:outline-none"
+                  className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 focus:outline-none w-full"
                 />
-                <p className="text-xs text-slate-500 mt-2">Selecione uma data específica</p>
+                
+                {/* Selected dates display */}
+                {pendingDates.length > 0 && (
+                  <div className="mt-3 space-y-1">
+                    <p className="text-xs text-slate-400">Datas selecionadas:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {pendingDates.map(date => (
+                        <span key={date} className="inline-flex items-center gap-1 bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded">
+                          {new Date(date + "T00:00:00").toLocaleDateString("pt-BR")}
+                          <button
+                            onClick={() => setPendingDates(prev => prev.filter(d => d !== date))}
+                            className="hover:text-white"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <p className="text-xs text-slate-500 mt-2">Clique em uma data para selecionar múltiplas</p>
+                
+                {pendingDates.length > 0 && (
+                  <button
+                    onClick={handleApplyDates}
+                    disabled={loading}
+                    className="mt-3 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                  >
+                    {loading ? "Carregando..." : `Ver ${pendingDates.length} dia(s)`}
+                  </button>
+                )}
               </div>
             )}
           </div>
