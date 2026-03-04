@@ -23,6 +23,9 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fixed multi-date selection error "Invalid date format" (added comma check in API)
 - [x] Fixed Activity page: now shows data for selected dates only (not just last 7 days)
 - [x] Fixed multi-date totals: now calculates sum from data arrays
+- [x] Fixed Overview "Total": now sums all historical data instead of showing today's data
+- [x] Fixed Activity "Hoje": now shows only today's data (not total)
+- [x] Fixed Personalizado with 3+ dates: fixed date range calculation in API
 
 ## Current Structure
 
