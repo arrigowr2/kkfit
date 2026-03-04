@@ -86,10 +86,10 @@ export async function getStepsData(
     // specificDate is the END date, calculate start from end - use manual parsing to avoid UTC issues
     const [year, month, day] = specificDate.split('-').map(Number);
     endTime = new Date(year, month - 1, day, 23, 59, 59);
-    startTime = new Date(year, month - 1, day, 23, 59, 59);
-    // days=1 means get only that specific date
-    // days=7 means get that date and 6 days before = 7 days total
-    startTime.setDate(startTime.getDate() - (days - 1));
+    // days=1: start = same day at 00:00:00 (end of that day)
+    // days=2: start = previous day at 00:00:00 (48 hours)
+    // days=7: start = 6 days before at 00:00:00 (7 days)
+    startTime = new Date(year, month - 1, day - (days - 1), 0, 0, 0);
   } else {
     endTime = new Date();
     startTime = new Date(endTime);
@@ -168,8 +168,7 @@ export async function getCaloriesData(
     // specificDate is the END date - use manual parsing to avoid UTC issues
     const [year, month, day] = specificDate.split('-').map(Number);
     endTime = new Date(year, month - 1, day, 23, 59, 59);
-    startTime = new Date(year, month - 1, day, 23, 59, 59);
-    startTime.setDate(startTime.getDate() - (days - 1));
+    startTime = new Date(year, month - 1, day - (days - 1), 0, 0, 0);
   } else {
     endTime = new Date();
     startTime = new Date(endTime);
@@ -225,8 +224,7 @@ export async function getHeartRateData(
     // specificDate is the END date - use manual parsing to avoid UTC issues
     const [year, month, day] = specificDate.split('-').map(Number);
     endTime = new Date(year, month - 1, day, 23, 59, 59);
-    startTime = new Date(year, month - 1, day, 23, 59, 59);
-    startTime.setDate(startTime.getDate() - (days - 1));
+    startTime = new Date(year, month - 1, day - (days - 1), 0, 0, 0);
   } else {
     endTime = new Date();
     startTime = new Date(endTime);
@@ -289,8 +287,7 @@ export async function getSleepData(
     // specificDate is the END date - use manual parsing to avoid UTC issues
     const [year, month, day] = specificDate.split('-').map(Number);
     endTime = new Date(year, month - 1, day, 23, 59, 59);
-    startTime = new Date(year, month - 1, day, 23, 59, 59);
-    startTime.setDate(startTime.getDate() - (days - 1));
+    startTime = new Date(year, month - 1, day - (days - 1), 0, 0, 0);
   } else {
     endTime = new Date();
     startTime = new Date(endTime);
@@ -356,8 +353,7 @@ export async function getWeightData(
     // specificDate is the END date - use manual parsing to avoid UTC issues
     const [year, month, day] = specificDate.split('-').map(Number);
     endTime = new Date(year, month - 1, day, 23, 59, 59);
-    startTime = new Date(year, month - 1, day, 23, 59, 59);
-    startTime.setDate(startTime.getDate() - (days - 1));
+    startTime = new Date(year, month - 1, day - (days - 1), 0, 0, 0);
   } else {
     endTime = new Date();
     startTime = new Date(endTime);
@@ -412,8 +408,7 @@ export async function getActivityData(
     // specificDate is the END date - use manual parsing to avoid UTC issues
     const [year, month, day] = specificDate.split('-').map(Number);
     endTime = new Date(year, month - 1, day, 23, 59, 59);
-    startTime = new Date(year, month - 1, day, 23, 59, 59);
-    startTime.setDate(startTime.getDate() - (days - 1));
+    startTime = new Date(year, month - 1, day - (days - 1), 0, 0, 0);
   } else {
     endTime = new Date();
     startTime = new Date(endTime);
