@@ -123,11 +123,13 @@ export async function getStepsData(
   const result: DailySteps[] = [];
   if (data.bucket) {
     for (const bucket of data.bucket) {
+      // Use UTC to format date since Google Fit bucket timestamps are in UTC
+      // This ensures consistent date formatting regardless of server timezone
       const date = (() => {
         const d = new Date(parseInt(bucket.startTimeMillis));
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const year = d.getUTCFullYear();
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(d.getUTCDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
       })();
       let steps = 0;
@@ -182,10 +184,11 @@ export async function getCaloriesData(
   if (data.bucket) {
     for (const bucket of data.bucket) {
       const date = (() => {
+        // Use UTC to format date since Google Fit bucket timestamps are in UTC
         const d = new Date(parseInt(bucket.startTimeMillis));
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const year = d.getUTCFullYear();
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(d.getUTCDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
       })();
       let calories = 0;
@@ -238,10 +241,11 @@ export async function getHeartRateData(
   if (data.bucket) {
     for (const bucket of data.bucket) {
       const date = (() => {
+        // Use UTC to format date since Google Fit bucket timestamps are in UTC
         const d = new Date(parseInt(bucket.startTimeMillis));
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const year = d.getUTCFullYear();
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(d.getUTCDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
       })();
       let avg = 0,
@@ -301,10 +305,11 @@ export async function getSleepData(
   if (data.bucket) {
     for (const bucket of data.bucket) {
       const date = (() => {
+        // Use UTC to format date since Google Fit bucket timestamps are in UTC
         const d = new Date(parseInt(bucket.startTimeMillis));
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const year = d.getUTCFullYear();
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(d.getUTCDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
       })();
       let totalMinutes = 0;
@@ -367,10 +372,11 @@ export async function getWeightData(
   if (data.bucket) {
     for (const bucket of data.bucket) {
       const date = (() => {
+        // Use UTC to format date since Google Fit bucket timestamps are in UTC
         const d = new Date(parseInt(bucket.startTimeMillis));
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const year = d.getUTCFullYear();
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(d.getUTCDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
       })();
       if (bucket.dataset?.[0]?.point?.length > 0) {
@@ -424,10 +430,11 @@ export async function getActivityData(
   if (activeMinutesData.bucket) {
     for (const bucket of activeMinutesData.bucket) {
       const date = (() => {
+        // Use UTC to format date since Google Fit bucket timestamps are in UTC
         const d = new Date(parseInt(bucket.startTimeMillis));
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const year = d.getUTCFullYear();
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(d.getUTCDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
       })();
       let minutes = 0;
@@ -444,10 +451,11 @@ export async function getActivityData(
   if (distanceData.bucket) {
     for (const bucket of distanceData.bucket) {
       const date = (() => {
+        // Use UTC to format date since Google Fit bucket timestamps are in UTC
         const d = new Date(parseInt(bucket.startTimeMillis));
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const year = d.getUTCFullYear();
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(d.getUTCDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
       })();
       let distance = 0;
