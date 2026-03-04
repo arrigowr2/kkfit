@@ -58,13 +58,23 @@ export default function ActivityPageClient() {
     } else {
       url = date ? `/api/fitness/summary?date=${date}` : "/api/fitness/summary?date=total";
     }
+    console.log("[ActivityPageClient] Fetching:", url);
     fetch(url)
       .then((r) => r.json())
       .then((d) => {
+        console.log("[ActivityPageClient] Received data:", {
+          targetDate: d?.targetDate,
+          today: d?.today,
+          stepsCount: d?.steps?.length,
+          stepsDates: d?.steps?.map((s: {date: string}) => s.date)
+        });
         setData(d);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((e) => {
+        console.error("[ActivityPageClient] Fetch error:", e);
+        setLoading(false);
+      });
   };
 
   // Initial data fetch - default to total mode
@@ -162,20 +172,27 @@ export default function ActivityPageClient() {
   // Get targetDate from API response for consistent filtering (server time)
   const apiTargetDate = data?.targetDate;
   
+  console.log("[ActivityPageClient] Display mode:", selectedMode, "apiTargetDate:", apiTargetDate);
+  console.log("[ActivityPageClient] stepsArr dates:", stepsArr.map(d => d.date));
+  
   if (selectedMode === "total") {
     displaySteps = stepsArr.slice(-7);
     displayCalories = caloriesArr.slice(-7);
     displayActivity = activityArr.slice(-7);
   } else if (selectedMode === "today") {
     // For today: use targetDate from API (server time) for consistent filtering
+    console.log("[ActivityPageClient] TODAY filter - looking for date:", apiTargetDate, "in", stepsArr.map(d => d.date));
     displaySteps = stepsArr.filter(d => d.date === apiTargetDate);
     displayCalories = caloriesArr.filter(d => d.date === apiTargetDate);
     displayActivity = activityArr.filter(d => d.date === apiTargetDate);
+    console.log("[ActivityPageClient] TODAY filter result - steps:", displaySteps.length, "entries");
   } else if (selectedMode === "yesterday") {
     // For yesterday: use targetDate from API (server time) for consistent filtering
+    console.log("[ActivityPageClient] YESTERDAY filter - looking for date:", apiTargetDate, "in", stepsArr.map(d => d.date));
     displaySteps = stepsArr.filter(d => d.date === apiTargetDate);
     displayCalories = caloriesArr.filter(d => d.date === apiTargetDate);
     displayActivity = activityArr.filter(d => d.date === apiTargetDate);
+    console.log("[ActivityPageClient] YESTERDAY filter result - steps:", displaySteps.length, "entries");
   } else {
     // For custom - show all data for the selected dates (API returns filtered data)
     displaySteps = stepsArr;

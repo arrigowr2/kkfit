@@ -36,10 +36,13 @@ export async function GET(request: Request) {
   let targetDate: Date;
   let dateStr: string;
 
+  console.log("[Summary API] Request params:", { dateParam, mode, isMultiple, isToday, isTotal });
+
   if (isTotal) {
     // Total - get all data, no specific date
     targetDate = new Date();
     dateStr = "";
+    console.log("[Summary API] Mode: TOTAL");
   } else if (isToday) {
     // Today - use today's date in local time
     targetDate = new Date();
@@ -47,6 +50,7 @@ export async function GET(request: Request) {
     const month = String(targetDate.getMonth() + 1).padStart(2, '0');
     const day = String(targetDate.getDate()).padStart(2, '0');
     dateStr = `${year}-${month}-${day}`;
+    console.log("[Summary API] Mode: TODAY, dateStr:", dateStr, "server time:", targetDate.toISOString());
   } else if (dateParam === "yesterday") {
     // Yesterday - use yesterday's date in local time
     const yesterday = new Date();
@@ -56,15 +60,22 @@ export async function GET(request: Request) {
     const month = String(targetDate.getMonth() + 1).padStart(2, '0');
     const day = String(targetDate.getDate()).padStart(2, '0');
     dateStr = `${year}-${month}-${day}`;
-    console.log("[Summary API] isYesterday=true, dateStr:", dateStr);
+    console.log("[Summary API] Mode: YESTERDAY, dateStr:", dateStr, "server time:", targetDate.toISOString());
   } else if (dateParam && dateParam !== "yesterday" && !dateParam.includes(",")) {
     // Single custom date - parse manually to avoid UTC issues
     const [year, month, day] = dateParam.split('-').map(Number);
     targetDate = new Date(year, month - 1, day); // month is 0-indexed
     dateStr = dateParam;
+    console.log("[Summary API] Mode: SINGLE DATE, dateStr:", dateStr);
+  } else if (isMultiple) {
+    // Multiple dates - will be handled later
+    targetDate = new Date();
+    dateStr = dateParam || "";
+    console.log("[Summary API] Mode: MULTIPLE DATES, dateParam:", dateParam);
   } else {
     targetDate = new Date();
     dateStr = targetDate.toISOString().split("T")[0];
+    console.log("[Summary API] Mode: DEFAULT, dateStr:", dateStr);
   }
 
   if (isNaN(targetDate.getTime())) {
@@ -118,14 +129,17 @@ export async function GET(request: Request) {
           getActivityData(session.accessToken, 30),
         ]);
       
-      console.log("[Summary API] Steps data before filter:", stepsData?.slice(-5));
+      console.log("[Summary API] TODAY mode - todayStr:", todayStr);
+      console.log("[Summary API] Steps data before filter (last 10):", stepsData?.slice(-10));
+      console.log("[Summary API] Steps data dates:", stepsData?.map(d => d.date));
       // Filter data to only show today (for client-side display consistency)
+      const beforeFilterCount = stepsData?.length || 0;
       stepsData = (stepsData || []).filter(d => d.date === todayStr);
       caloriesData = (caloriesData || []).filter(d => d.date === todayStr);
       activityData = (activityData || []).filter(d => d.date === todayStr);
       heartRateData = (heartRateData || []).filter(d => d.date === todayStr);
       sleepData = (sleepData || []).filter(d => d.date === todayStr);
-      console.log("[Summary API] Steps data after filter:", stepsData);
+      console.log(`[Summary API] Filtered from ${beforeFilterCount} to ${stepsData.length} steps entries for date ${todayStr}`);
     } else if (isMultiple) {
       // Multiple dates - comma-separated
       const dateList = dateParam.split(",").map(d => d.trim());
@@ -199,7 +213,7 @@ export async function GET(request: Request) {
         ]);
     }
 
-    return NextResponse.json({
+    const response = {
       targetDate: dateStr,
       today: todayData,
       steps: stepsData,
@@ -208,7 +222,11 @@ export async function GET(request: Request) {
       sleep: sleepData,
       weight: weightData,
       activity: activityData,
-    });
+    };
+    console.log("[Summary API] Response targetDate:", dateStr);
+    console.log("[Summary API] Response steps count:", stepsData?.length);
+    console.log("[Summary API] Response steps dates:", stepsData?.map(d => d.date));
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Error fetching fitness summary:", error);
     const message = error instanceof Error ? error.message : "Failed to fetch fitness data";
