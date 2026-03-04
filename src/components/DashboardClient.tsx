@@ -211,16 +211,19 @@ export default function DashboardClient() {
   }, []);
 
   const handleQuickDate = (value: string, mode: "today" | "yesterday" | "custom" | "total") => {
+    console.log("[DashboardClient] handleQuickDate called:", { value, mode });
     setSelectedMode(mode);
     if (mode === "total") {
       setSelectedDate("");
       fetchData("", "total");
     } else if (mode === "today") {
       setSelectedDate("");
+      console.log("[DashboardClient] Fetching TODAY data");
       fetchData("", "today");
     } else if (mode === "yesterday") {
       setSelectedDate(value);
       setShowDatePicker(false);
+      console.log("[DashboardClient] Fetching YESTERDAY data, value:", value);
       fetchData(value, "yesterday");
     } else if (mode === "custom") {
       setShowDatePicker(true);

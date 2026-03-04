@@ -86,12 +86,23 @@ export async function getStepsData(
     // specificDate is the END date, calculate start from end
     endTime = new Date(specificDate + "T23:59:59");
     startTime = new Date(endTime);
-    startTime.setDate(startTime.getDate() - days + 1); // +1 to include the end date
+    // days=1 means get only that specific date
+    // days=7 means get that date and 6 days before = 7 days total
+    startTime.setDate(startTime.getDate() - (days - 1));
   } else {
     endTime = new Date();
     startTime = new Date(endTime);
     startTime.setDate(startTime.getDate() - days);
   }
+
+  console.log("[getStepsData] Requesting data:", {
+    specificDate,
+    days,
+    startTime: startTime.toISOString(),
+    endTime: endTime.toISOString(),
+    startDateStr: `${startTime.getFullYear()}-${String(startTime.getMonth() + 1).padStart(2, '0')}-${String(startTime.getDate()).padStart(2, '0')}`,
+    endDateStr: `${endTime.getFullYear()}-${String(endTime.getMonth() + 1).padStart(2, '0')}-${String(endTime.getDate()).padStart(2, '0')}`
+  });
 
   const body = {
     aggregateBy: [
@@ -128,6 +139,8 @@ export async function getStepsData(
     }
   }
 
+  console.log("[getStepsData] Returning data:", result.slice(-5));
+
   return result.sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -142,7 +155,7 @@ export async function getCaloriesData(
   if (specificDate) {
     endTime = new Date(specificDate + "T23:59:59");
     startTime = new Date(endTime);
-    startTime.setDate(startTime.getDate() - days + 1);
+    startTime.setDate(startTime.getDate() - (days - 1));
   } else {
     endTime = new Date();
     startTime = new Date(endTime);
@@ -190,11 +203,18 @@ export async function getHeartRateData(
   days: number = 30,
   specificDate?: string
 ): Promise<HeartRateData[]> {
-  const endTime = specificDate 
-    ? new Date(specificDate + "T23:59:59") 
-    : new Date();
-  const startTime = new Date(endTime);
-  startTime.setDate(startTime.getDate() - days);
+  let startTime: Date;
+  let endTime: Date;
+  
+  if (specificDate) {
+    endTime = new Date(specificDate + "T23:59:59");
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - (days - 1));
+  } else {
+    endTime = new Date();
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - days);
+  }
 
   const body = {
     aggregateBy: [
@@ -244,11 +264,18 @@ export async function getSleepData(
   days: number = 30,
   specificDate?: string
 ): Promise<SleepData[]> {
-  const endTime = specificDate 
-    ? new Date(specificDate + "T23:59:59") 
-    : new Date();
-  const startTime = new Date(endTime);
-  startTime.setDate(startTime.getDate() - days);
+  let startTime: Date;
+  let endTime: Date;
+  
+  if (specificDate) {
+    endTime = new Date(specificDate + "T23:59:59");
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - (days - 1));
+  } else {
+    endTime = new Date();
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - days);
+  }
 
   const body = {
     aggregateBy: [
@@ -301,11 +328,18 @@ export async function getWeightData(
   days: number = 90,
   specificDate?: string
 ): Promise<WeightData[]> {
-  const endTime = specificDate 
-    ? new Date(specificDate + "T23:59:59") 
-    : new Date();
-  const startTime = new Date(endTime);
-  startTime.setDate(startTime.getDate() - days);
+  let startTime: Date;
+  let endTime: Date;
+  
+  if (specificDate) {
+    endTime = new Date(specificDate + "T23:59:59");
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - (days - 1));
+  } else {
+    endTime = new Date();
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - days);
+  }
 
   const body = {
     aggregateBy: [
@@ -353,7 +387,7 @@ export async function getActivityData(
   if (specificDate) {
     endTime = new Date(specificDate + "T23:59:59");
     startTime = new Date(endTime);
-    startTime.setDate(startTime.getDate() - days + 1);
+    startTime.setDate(startTime.getDate() - (days - 1));
   } else {
     endTime = new Date();
     startTime = new Date(endTime);

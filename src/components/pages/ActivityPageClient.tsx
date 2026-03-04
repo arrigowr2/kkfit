@@ -78,16 +78,19 @@ export default function ActivityPageClient() {
   }, []);
 
   const handleQuickDate = (value: string, mode: "today" | "yesterday" | "custom" | "total") => {
+    console.log("[ActivityPageClient] handleQuickDate called:", { value, mode });
     setSelectedMode(mode);
     if (mode === "total") {
       setSelectedDate("");
       fetchData("", "total");
     } else if (mode === "today") {
       setSelectedDate("");
+      console.log("[ActivityPageClient] Fetching TODAY data");
       fetchData("", "today");
     } else if (mode === "yesterday") {
       setSelectedDate(value);
       setShowDatePicker(false);
+      console.log("[ActivityPageClient] Fetching YESTERDAY data, value:", value);
       fetchData(value, "yesterday");
     } else if (mode === "custom") {
       setShowDatePicker(true);

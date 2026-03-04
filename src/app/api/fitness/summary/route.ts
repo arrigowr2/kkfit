@@ -48,6 +48,7 @@ export async function GET(request: Request) {
     const day = String(targetDate.getDate()).padStart(2, '0');
     dateStr = `${year}-${month}-${day}`;
   } else if (dateParam === "yesterday") {
+    // Yesterday - use yesterday's date in local time
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     targetDate = yesterday;
@@ -55,6 +56,7 @@ export async function GET(request: Request) {
     const month = String(targetDate.getMonth() + 1).padStart(2, '0');
     const day = String(targetDate.getDate()).padStart(2, '0');
     dateStr = `${year}-${month}-${day}`;
+    console.log("[Summary API] isYesterday=true, dateStr:", dateStr);
   } else if (dateParam && dateParam !== "yesterday" && !dateParam.includes(",")) {
     // Single custom date - not multiple dates
     targetDate = new Date(dateParam + "T00:00:00");
@@ -99,8 +101,10 @@ export async function GET(request: Request) {
       };
     } else if (isToday) {
       // Get today's data and last 30 days for charts - but filter to only today for display
+      // Use local date on the server (not UTC) to match client expectations
       const todayLocal = new Date();
       const todayStr = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
+      console.log("[Summary API] isToday=true, todayStr:", todayStr, "dateStr:", dateStr);
       
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
         await Promise.all([
@@ -113,12 +117,14 @@ export async function GET(request: Request) {
           getActivityData(session.accessToken, 30),
         ]);
       
+      console.log("[Summary API] Steps data before filter:", stepsData?.slice(-5));
       // Filter data to only show today (for client-side display consistency)
       stepsData = (stepsData || []).filter(d => d.date === todayStr);
       caloriesData = (caloriesData || []).filter(d => d.date === todayStr);
       activityData = (activityData || []).filter(d => d.date === todayStr);
       heartRateData = (heartRateData || []).filter(d => d.date === todayStr);
       sleepData = (sleepData || []).filter(d => d.date === todayStr);
+      console.log("[Summary API] Steps data after filter:", stepsData);
     } else if (isMultiple) {
       // Multiple dates - comma-separated
       const dateList = dateParam.split(",").map(d => d.trim());
