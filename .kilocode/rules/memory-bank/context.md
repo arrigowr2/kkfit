@@ -35,6 +35,8 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fixed "Ontem" button returning no data - added client-side filter for yesterday's data
 - [x] Fixed date calculation for single/custom dates: use -(days-1) instead of -days+1 for single day requests (fixes "Hoje"/"Ontem" showing no data)
 - [x] Fixed UTC timezone issues: now parses dates manually in getDailyData and route.ts to avoid UTC conversion bugs
+- [x] Fix Activity page "Hoje" and "Ontem": now use same local date logic as Overview
+- [x] Fix google-fit.ts: Parse specificDate manually in all get*Data functions (getStepsData, getCaloriesData, getHeartRateData, getSleepData, getWeightData, getActivityData) to use local timezone instead of UTC
 
 ## Current Structure
 
@@ -126,4 +128,6 @@ export async function GET() {
 | 2026-03-04 | Fixed Personalizado: now properly filters data to show only selected dates
 | 2026-03-04 | Fixed Personalizado multiple dates bug: changed to use lastDate for range calculation
 | 2026-03-04 | Fixed "Hoje" and "Ontem" buttons showing no data: corrected date calculation formula from -days+1 to -(days-1) in google-fit.ts for all data types
+| 2026-03-04 | Fixed Activity page "Hoje" and "Ontem": now use same local date logic as Overview
+| 2026-03-04 | Fixed google-fit.ts: Parse specificDate manually in all get*Data functions to avoid UTC issues (fixes Personalizado with multiple dates)
 | 2026-03-04 | Fixed UTC timezone issues: now parses dates manually in getDailyData and route.ts to avoid UTC conversion bugs
