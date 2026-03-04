@@ -311,7 +311,6 @@ export default function ActivityPageClient() {
                   onChange={handleDateChange}
                   className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 focus:outline-none w-full"
                   max={getLocalDateStr()}
-                  className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 focus:outline-none w-full"
                 />
                 
                 {/* Selected dates display */}
