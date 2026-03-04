@@ -30,6 +30,9 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fixed Personalizado: now properly filters data to show only selected dates
 - [x] Fixed Today/Yesterday/Personalizado showing empty data - changed google-fit.ts to use local date parsing instead of UTC
 - [x] Fixed API route to filter data correctly for 'today' and 'yesterday' modes
+- [x] Fixed "Personalizado" returning only 1 date - changed from firstDate to lastDate for range calculation
+- [x] Fixed "Hoje" button returning no data - fixed getTodaySummary to use local date
+- [x] Fixed "Ontem" button returning no data - added client-side filter for yesterday's data
 
 ## Current Structure
 
@@ -119,3 +122,4 @@ export async function GET() {
 | 2026-03-04 | Fixed multi-date selection "Invalid date format" error and Activity page showing only selected dates data
 | 2026-03-04 | Fixed timezone issue: now uses local date instead of UTC for date comparison (fixes empty "Hoje"/"Ontem" data)
 | 2026-03-04 | Fixed Personalizado: now properly filters data to show only selected dates
+| 2026-03-04 | Fixed Personalizado multiple dates bug: changed to use lastDate for range calculation
