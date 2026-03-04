@@ -110,33 +110,41 @@ export default function ActivityPageClient() {
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const dateValue = e.target.value;
+    console.log("[ActivityPageClient] Date picker changed:", dateValue);
     if (dateValue) {
       // HTML date input already returns YYYY-MM-DD format in local time
       const dateStr = dateValue;
       // Add to pending dates (toggle)
       setPendingDates(prev => {
-        if (prev.includes(dateStr)) {
-          return prev.filter(d => d !== dateStr);
-        }
-        return [...prev, dateStr].sort();
+        const newDates = prev.includes(dateStr)
+          ? prev.filter(d => d !== dateStr)
+          : [...prev, dateStr].sort();
+        console.log("[ActivityPageClient] Pending dates updated:", newDates);
+        return newDates;
       });
     }
   };
 
   const handleApplyDates = () => {
+    console.log("[ActivityPageClient] handleApplyDates called, pendingDates:", pendingDates);
     if (pendingDates.length > 0) {
       setSelectedDate(pendingDates.join(","));
       setSelectedMode("custom");
       setShowDatePicker(false);
       // Fetch data for the selected dates
       const dateParam = pendingDates.join(",");
+      console.log("[ActivityPageClient] Fetching multiple dates:", dateParam);
       fetch(`/api/fitness/summary?date=${dateParam}&mode=multiple`)
         .then((r) => r.json())
         .then((d) => {
+          console.log("[ActivityPageClient] Received multiple dates data:", d);
           setData(d);
           setLoading(false);
         })
-        .catch(() => setLoading(false));
+        .catch((e) => {
+          console.error("[ActivityPageClient] Error fetching multiple dates:", e);
+          setLoading(false);
+        });
     } else {
       setShowDatePicker(false);
     }
@@ -179,20 +187,25 @@ export default function ActivityPageClient() {
     displaySteps = stepsArr.slice(-7);
     displayCalories = caloriesArr.slice(-7);
     displayActivity = activityArr.slice(-7);
-  } else if (selectedMode === "today") {
-    // For today: use targetDate from API (server time) for consistent filtering
-    console.log("[ActivityPageClient] TODAY filter - looking for date:", apiTargetDate, "in", stepsArr.map(d => d.date));
-    displaySteps = stepsArr.filter(d => d.date === apiTargetDate);
-    displayCalories = caloriesArr.filter(d => d.date === apiTargetDate);
-    displayActivity = activityArr.filter(d => d.date === apiTargetDate);
-    console.log("[ActivityPageClient] TODAY filter result - steps:", displaySteps.length, "entries");
-  } else if (selectedMode === "yesterday") {
-    // For yesterday: use targetDate from API (server time) for consistent filtering
-    console.log("[ActivityPageClient] YESTERDAY filter - looking for date:", apiTargetDate, "in", stepsArr.map(d => d.date));
-    displaySteps = stepsArr.filter(d => d.date === apiTargetDate);
-    displayCalories = caloriesArr.filter(d => d.date === apiTargetDate);
-    displayActivity = activityArr.filter(d => d.date === apiTargetDate);
-    console.log("[ActivityPageClient] YESTERDAY filter result - steps:", displaySteps.length, "entries");
+  } else if (selectedMode === "today" || selectedMode === "yesterday") {
+    // For today/yesterday: use the today object from API response
+    // The API returns single-day data in the "today" object, not in arrays
+    console.log("[ActivityPageClient] Using today object for", selectedMode, ":", data?.today);
+    if (data?.today) {
+      // Create a single entry using the targetDate and today object values
+      displaySteps = [{ date: apiTargetDate || "", steps: data.today.steps || 0 }];
+      displayCalories = [{ date: apiTargetDate || "", calories: data.today.calories || 0 }];
+      displayActivity = [{
+        date: apiTargetDate || "",
+        activeMinutes: data.today.activeMinutes || 0,
+        distance: data.today.distance || 0
+      }];
+    } else {
+      displaySteps = [];
+      displayCalories = [];
+      displayActivity = [];
+    }
+    console.log("[ActivityPageClient] Single day data - steps:", displaySteps);
   } else {
     // For custom - show all data for the selected dates (API returns filtered data)
     displaySteps = stepsArr;
