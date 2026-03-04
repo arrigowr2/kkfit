@@ -138,18 +138,36 @@ export default function ActivityPageClient() {
 
   const today = data?.today;
   
-  // Calculate weekly data (last 7 days)
-  const weeklySteps = (data?.steps || []).slice(-7);
-  const weeklyCalories = (data?.calories || []).slice(-7);
-  const weeklyActivity = (data?.activity || []).slice(-7);
+  // For total mode: use last 7 days. For custom/today/yesterday: use only the selected dates
+  const stepsArr = data?.steps || [];
+  const caloriesArr = data?.calories || [];
+  const activityArr = data?.activity || [];
   
-  const totalSteps = weeklySteps.reduce((a, b) => a + b.steps, 0);
-  const totalCalories = weeklyCalories.reduce((a, b) => a + b.calories, 0);
-  const totalDistance = weeklyActivity.reduce((a, b) => a + b.distance, 0);
-  const totalActiveMinutes = weeklyActivity.reduce((a, b) => a + b.activeMinutes, 0);
-  const daysWithGoal = weeklySteps.filter((d) => d.steps >= 10000).length;
+  let displaySteps: { date: string; steps: number }[];
+  let displayCalories: { date: string; calories: number }[];
+  let displayActivity: { date: string; activeMinutes: number; distance: number }[];
+  
+  if (selectedMode === "total") {
+    displaySteps = stepsArr.slice(-7);
+    displayCalories = caloriesArr.slice(-7);
+    displayActivity = activityArr.slice(-7);
+  } else {
+    // For today, yesterday, or custom - show only the data for those dates
+    displaySteps = stepsArr;
+    displayCalories = caloriesArr;
+    displayActivity = activityArr;
+  }
+  
+  const totalSteps = displaySteps.reduce((a, b) => a + b.steps, 0);
+  const totalCalories = displayCalories.reduce((a, b) => a + b.calories, 0);
+  const totalDistance = displayActivity.reduce((a, b) => a + b.distance, 0);
+  const totalActiveMinutes = displayActivity.reduce((a, b) => a + b.activeMinutes, 0);
+  const daysWithGoal = displaySteps.filter((d) => d.steps >= 10000).length;
 
-  const last7Activity = (data?.activity || []).slice(-7);
+  // For charts: use same logic as totals
+  const chartSteps = selectedMode === "total" ? displaySteps.slice(-7) : displaySteps;
+  const chartCalories = selectedMode === "total" ? displayCalories.slice(-7) : displayCalories;
+  const chartActivity = selectedMode === "total" ? displayActivity.slice(-7) : displayActivity;
 
   return (
     <div className="space-y-6">
@@ -308,13 +326,13 @@ export default function ActivityPageClient() {
           <p className="text-slate-400 text-xs mb-4">
             Últimos 7 dias
           </p>
-          <StepsChart data={weeklySteps} />
+          <StepsChart data={chartSteps} />
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
           <h3 className="text-white font-semibold mb-1">Calorias Queimadas</h3>
           <p className="text-slate-400 text-xs mb-4">Últimos 7 dias</p>
-          <CaloriesChart data={weeklyCalories} />
+          <CaloriesChart data={chartCalories} />
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 lg:col-span-2">
@@ -326,7 +344,7 @@ export default function ActivityPageClient() {
           </p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart
-              data={last7Activity}
+              data={chartActivity}
               margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />

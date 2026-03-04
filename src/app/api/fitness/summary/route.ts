@@ -49,7 +49,8 @@ export async function GET(request: Request) {
     yesterday.setDate(yesterday.getDate() - 1);
     targetDate = yesterday;
     dateStr = targetDate.toISOString().split("T")[0];
-  } else if (dateParam && dateParam !== "yesterday") {
+  } else if (dateParam && dateParam !== "yesterday" && !dateParam.includes(",")) {
+    // Single custom date - not multiple dates
     targetDate = new Date(dateParam + "T00:00:00");
     dateStr = dateParam;
   } else {
@@ -90,7 +91,7 @@ export async function GET(request: Request) {
           getActivityData(session.accessToken, 30),
         ]);
     } else if (isMultiple) {
-      // Multiple dates - comma-separated
+      // Multiple dates - comma-separated - calculate sum from the data arrays
       const dateList = dateParam.split(",").filter(d => d.trim());
       const firstDate = dateList[0];
       const lastDate = dateList[dateList.length - 1];
@@ -100,7 +101,13 @@ export async function GET(request: Request) {
       // Get data for all selected dates
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
         await Promise.all([
-          getDailyData(session.accessToken, lastDate), // Latest date for today
+          // For multiple dates, calculate sum from steps/calories/activity data
+          Promise.resolve({
+            steps: 0,
+            calories: 0,
+            activeMinutes: 0,
+            distance: 0
+          }),
           getStepsData(session.accessToken, numDays, firstDate), // From first to last date
           getCaloriesData(session.accessToken, numDays, firstDate),
           getHeartRateData(session.accessToken, numDays, firstDate),
@@ -108,6 +115,19 @@ export async function GET(request: Request) {
           getWeightData(session.accessToken, 90, lastDate),
           getActivityData(session.accessToken, numDays, firstDate),
         ]);
+      
+      // Calculate the sum for todayData from the data arrays
+      const sumSteps = (stepsData || []).reduce((sum, d) => sum + d.steps, 0);
+      const sumCalories = (caloriesData || []).reduce((sum, d) => sum + d.calories, 0);
+      const sumActivity = (activityData || []).reduce((sum, d) => sum + d.activeMinutes, 0);
+      const sumDistance = (activityData || []).reduce((sum, d) => sum + d.distance, 0);
+      
+      todayData = {
+        steps: sumSteps,
+        calories: sumCalories,
+        activeMinutes: sumActivity,
+        distance: sumDistance
+      };
     } else {
       // Get data for a specific date (yesterday or custom date)
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
