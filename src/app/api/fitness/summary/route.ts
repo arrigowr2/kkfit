@@ -160,6 +160,7 @@ export async function GET(request: Request) {
       console.log("[Summary API] daysDiff:", daysDiff, "numDays:", numDays);
       
       // Get data for the date range - use lastDate to calculate range correctly
+      console.log("[Summary API] Calling Google Fit with numDays:", numDays, "lastDate:", lastDate);
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
         await Promise.all([
           Promise.resolve({
@@ -175,6 +176,7 @@ export async function GET(request: Request) {
           getWeightData(session.accessToken, 90, lastDate),
           getActivityData(session.accessToken, numDays, lastDate),
         ]);
+      console.log("[Summary API] Raw steps data from Google Fit:", stepsData?.map(d => d.date));
       
       // Filter to only include the exact dates selected
       const dateSet = new Set(dateList);

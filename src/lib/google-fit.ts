@@ -101,8 +101,9 @@ export async function getStepsData(
     days,
     startTime: startTime.toISOString(),
     endTime: endTime.toISOString(),
-    startDateStr: `${startTime.getFullYear()}-${String(startTime.getMonth() + 1).padStart(2, '0')}-${String(startTime.getDate()).padStart(2, '0')}`,
-    endDateStr: `${endTime.getFullYear()}-${String(endTime.getMonth() + 1).padStart(2, '0')}-${String(endTime.getDate()).padStart(2, '0')}`
+    startDateLocal: `${startTime.getFullYear()}-${String(startTime.getMonth() + 1).padStart(2, '0')}-${String(startTime.getDate()).padStart(2, '0')}`,
+    endDateLocal: `${endTime.getFullYear()}-${String(endTime.getMonth() + 1).padStart(2, '0')}-${String(endTime.getDate()).padStart(2, '0')}`,
+    serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
 
   const body = {
@@ -120,6 +121,12 @@ export async function getStepsData(
 
   const data = await fetchFitData(accessToken, "/dataset:aggregate", body);
 
+  console.log("[getStepsData] Google Fit returned buckets:", data.bucket?.length || 0);
+  if (data.bucket?.length > 0) {
+    console.log("[getStepsData] First bucket startTimeMillis:", data.bucket[0].startTimeMillis, "->", new Date(parseInt(data.bucket[0].startTimeMillis)).toISOString());
+    console.log("[getStepsData] Last bucket startTimeMillis:", data.bucket[data.bucket.length-1].startTimeMillis, "->", new Date(parseInt(data.bucket[data.bucket.length-1].startTimeMillis)).toISOString());
+  }
+
   const result: DailySteps[] = [];
   if (data.bucket) {
     for (const bucket of data.bucket) {
@@ -130,7 +137,9 @@ export async function getStepsData(
         const year = d.getUTCFullYear();
         const month = String(d.getUTCMonth() + 1).padStart(2, '0');
         const day = String(d.getUTCDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        const formatted = `${year}-${month}-${day}`;
+        console.log(`[getStepsData] Bucket ${bucket.startTimeMillis} -> UTC: ${formatted}, Local: ${d.toISOString()}`);
+        return formatted;
       })();
       let steps = 0;
       if (bucket.dataset?.[0]?.point?.length > 0) {
