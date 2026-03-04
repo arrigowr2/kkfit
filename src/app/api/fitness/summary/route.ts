@@ -129,10 +129,12 @@ export async function GET(request: Request) {
     } else if (isMultiple) {
       // Multiple dates - comma-separated
       const dateList = dateParam.split(",").map(d => d.trim());
+      console.log("[Summary API] Multiple dates - dateList:", dateList);
       // Sort dates and calculate the range properly
       const sortedDates = [...dateList].sort();
       const firstDate = sortedDates[0];
       const lastDate = sortedDates[sortedDates.length - 1];
+      console.log("[Summary API] firstDate:", firstDate, "lastDate:", lastDate);
       // Parse dates manually to avoid UTC issues
       const [firstYear, firstMonth, firstDay] = firstDate.split('-').map(Number);
       const [lastYear, lastMonth, lastDay] = lastDate.split('-').map(Number);
@@ -141,6 +143,7 @@ export async function GET(request: Request) {
       // Calculate actual number of days in the range
       const daysDiff = (last.getTime() - first.getTime()) / (1000 * 60 * 60 * 24);
       const numDays = Math.round(daysDiff) + 1;
+      console.log("[Summary API] daysDiff:", daysDiff, "numDays:", numDays);
       
       // Get data for the date range - use lastDate to calculate range correctly
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
@@ -161,11 +164,14 @@ export async function GET(request: Request) {
       
       // Filter to only include the exact dates selected
       const dateSet = new Set(dateList);
+      console.log("[Summary API] dateSet:", [...dateSet]);
+      console.log("[Summary API] Steps data before filter:", stepsData?.map(d => d.date));
       stepsData = (stepsData || []).filter(d => dateSet.has(d.date));
       caloriesData = (caloriesData || []).filter(d => dateSet.has(d.date));
       activityData = (activityData || []).filter(d => dateSet.has(d.date));
       heartRateData = (heartRateData || []).filter(d => dateSet.has(d.date));
       sleepData = (sleepData || []).filter(d => dateSet.has(d.date));
+      console.log("[Summary API] Steps data after filter:", stepsData);
       
       // Calculate the sum for todayData from the filtered data arrays
       const sumSteps = (stepsData || []).reduce((sum, d) => sum + d.steps, 0);

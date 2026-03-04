@@ -16,6 +16,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface ActivityData {
+  targetDate?: string;
   today: {
     steps: number;
     calories: number;
@@ -158,24 +159,23 @@ export default function ActivityPageClient() {
   let displayCalories: { date: string; calories: number }[];
   let displayActivity: { date: string; activeMinutes: number; distance: number }[];
   
+  // Get targetDate from API response for consistent filtering (server time)
+  const apiTargetDate = data?.targetDate;
+  
   if (selectedMode === "total") {
     displaySteps = stepsArr.slice(-7);
     displayCalories = caloriesArr.slice(-7);
     displayActivity = activityArr.slice(-7);
   } else if (selectedMode === "today") {
-    // For today: only show today's data (use local time, not UTC)
-    const todayStr = getLocalDateStr();
-    displaySteps = stepsArr.filter(d => d.date === todayStr);
-    displayCalories = caloriesArr.filter(d => d.date === todayStr);
-    displayActivity = activityArr.filter(d => d.date === todayStr);
+    // For today: use targetDate from API (server time) for consistent filtering
+    displaySteps = stepsArr.filter(d => d.date === apiTargetDate);
+    displayCalories = caloriesArr.filter(d => d.date === apiTargetDate);
+    displayActivity = activityArr.filter(d => d.date === apiTargetDate);
   } else if (selectedMode === "yesterday") {
-    // For yesterday: only show yesterday's data (use local time)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = getLocalDateStr(yesterday);
-    displaySteps = stepsArr.filter(d => d.date === yesterdayStr);
-    displayCalories = caloriesArr.filter(d => d.date === yesterdayStr);
-    displayActivity = activityArr.filter(d => d.date === yesterdayStr);
+    // For yesterday: use targetDate from API (server time) for consistent filtering
+    displaySteps = stepsArr.filter(d => d.date === apiTargetDate);
+    displayCalories = caloriesArr.filter(d => d.date === apiTargetDate);
+    displayActivity = activityArr.filter(d => d.date === apiTargetDate);
   } else {
     // For custom - show all data for the selected dates (API returns filtered data)
     displaySteps = stepsArr;
