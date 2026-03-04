@@ -161,8 +161,12 @@ export default function DashboardClient() {
       url = "/api/fitness/summary?date=total";
     } else if (mode === "today") {
       url = "/api/fitness/summary?date=today";
+    } else if (mode === "yesterday") {
+      url = "/api/fitness/summary?date=yesterday";
+    } else if (mode === "multiple" && date) {
+      url = `/api/fitness/summary?date=${date}&mode=multiple`;
     } else {
-      url = date ? `/api/fitness/summary?date=${date}` : "/api/fitness/summary";
+      url = date ? `/api/fitness/summary?date=${date}` : "/api/fitness/summary?date=total";
     }
     fetch(url)
       .then((res) => {

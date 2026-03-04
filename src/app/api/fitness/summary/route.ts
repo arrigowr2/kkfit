@@ -29,6 +29,9 @@ export async function GET(request: Request) {
   // Check if requesting all data (Total)
   const isTotal = dateParam === "total" || dateParam === "" || dateParam === null || dateParam === undefined;
 
+  // Check if requesting today
+  const isToday = dateParam === "today";
+
   // Determine the target date
   let targetDate: Date;
   let dateStr: string;
@@ -37,14 +40,18 @@ export async function GET(request: Request) {
     // Total - get all data, no specific date
     targetDate = new Date();
     dateStr = "";
-  } else if (dateParam && dateParam !== "yesterday") {
-    targetDate = new Date(dateParam + "T00:00:00");
-    dateStr = dateParam;
+  } else if (isToday) {
+    // Today - use today's date
+    targetDate = new Date();
+    dateStr = targetDate.toISOString().split("T")[0];
   } else if (dateParam === "yesterday") {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     targetDate = yesterday;
     dateStr = targetDate.toISOString().split("T")[0];
+  } else if (dateParam && dateParam !== "yesterday") {
+    targetDate = new Date(dateParam + "T00:00:00");
+    dateStr = dateParam;
   } else {
     targetDate = new Date();
     dateStr = targetDate.toISOString().split("T")[0];
@@ -53,9 +60,6 @@ export async function GET(request: Request) {
   if (isNaN(targetDate.getTime())) {
     return NextResponse.json({ error: "Invalid date format. Use YYYY-MM-DD" }, { status: 400 });
   }
-
-  // Check if requesting today or a specific date
-  const isToday = !isTotal && dateStr === new Date().toISOString().split("T")[0];
 
   try {
     let todayData;
