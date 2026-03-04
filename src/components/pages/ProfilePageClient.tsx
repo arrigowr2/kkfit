@@ -89,13 +89,14 @@ export default function ProfilePageClient() {
             <Image
               src={session.user.image}
               alt={session.user.name || "User"}
-              width={100}
-              height={100}
-              className="rounded-full border-4 border-blue-500/30"
+              width={96}
+              height={96}
+              className="rounded-full border-4 border-blue-500/30 w-24 h-24"
+              unoptimized
             />
           ) : (
-            <div className="w-24 h-24 rounded-full bg-slate-800 border-4 border-blue-500/30 flex items-center justify-center text-4xl">
-              👤
+            <div className="w-24 h-24 rounded-full bg-blue-500/20 border-4 border-blue-500/30 flex items-center justify-center text-4xl text-blue-400 font-bold">
+              {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : "?"}
             </div>
           )}
         </div>

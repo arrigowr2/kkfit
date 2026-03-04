@@ -31,17 +31,20 @@ export default function ActivityPageClient() {
   const [data, setData] = useState<ActivityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedMode, setSelectedMode] = useState<"today" | "yesterday" | "custom" | "total">("total");
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Quick date options
   const quickDates = [
-    { label: "Hoje", value: "", getDate: () => new Date() },
-    { label: "Ontem", value: "yesterday", getDate: () => { const d = new Date(); d.setDate(d.getDate() - 1); return d; } },
+    { label: "Total", value: "", mode: "total" as const },
+    { label: "Hoje", value: "", mode: "today" as const },
+    { label: "Ontem", value: "yesterday", mode: "yesterday" as const },
   ];
 
   const fetchData = (date: string) => {
     setLoading(true);
-    const url = date ? `/api/fitness/summary?date=${date}` : "/api/fitness/summary";
+    // If total mode, fetch all data (no date filter)
+    const url = selectedMode === "total" ? "/api/fitness/summary" : (date ? `/api/fitness/summary?date=${date}` : "/api/fitness/summary");
     fetch(url)
       .then((r) => r.json())
       .then((d) => {
@@ -61,10 +64,16 @@ export default function ActivityPageClient() {
       .catch(() => setLoading(false));
   }, []);
 
-  const handleQuickDate = (value: string) => {
-    setSelectedDate(value);
-    setShowDatePicker(false);
-    fetchData(value);
+  const handleQuickDate = (value: string, mode: "today" | "yesterday" | "custom" | "total") => {
+    setSelectedMode(mode);
+    if (mode === "total") {
+      setSelectedDate("");
+      fetchData("");
+    } else {
+      setSelectedDate(value);
+      setShowDatePicker(false);
+      fetchData(value);
+    }
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,6 +82,7 @@ export default function ActivityPageClient() {
       const date = new Date(dateValue);
       const dateStr = date.toISOString().split("T")[0];
       setSelectedDate(dateStr);
+      setSelectedMode("custom");
       setShowDatePicker(false);
       fetchData(dateStr);
     } else {
@@ -117,10 +127,10 @@ export default function ActivityPageClient() {
         <div className="flex items-center gap-2">
           {quickDates.map((q) => (
             <button
-              key={q.value}
-              onClick={() => handleQuickDate(q.value)}
+              key={q.mode}
+              onClick={() => handleQuickDate(q.value, q.mode)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                selectedDate === q.value
+                selectedMode === q.mode
                   ? "bg-blue-500 text-white"
                   : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
               }`}
@@ -134,7 +144,7 @@ export default function ActivityPageClient() {
             <button
               onClick={() => setShowDatePicker(!showDatePicker)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
-                selectedDate && !quickDates.find(q => q.value === selectedDate)
+                selectedMode === "custom"
                   ? "bg-blue-500 text-white"
                   : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
               }`}
@@ -142,7 +152,7 @@ export default function ActivityPageClient() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              {selectedDate && !quickDates.find(q => q.value === selectedDate) 
+              {selectedMode === "custom" && selectedDate 
                 ? new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR")
                 : "Personalizado"}
             </button>
@@ -162,8 +172,8 @@ export default function ActivityPageClient() {
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Summary cards - hide Dias com Meta when single day selected */}
+      <div className={`grid gap-4 ${selectedMode === "total" ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 lg:grid-cols-3"}`}>
         {[
           {
             label: "Total de Passos",
@@ -186,13 +196,6 @@ export default function ActivityPageClient() {
             color: "text-cyan-400",
             icon: "📍",
           },
-          {
-            label: "Dias com Meta",
-            value: `${daysWithGoal}/7`,
-            unit: "dias",
-            color: "text-green-400",
-            icon: "🎯",
-          },
         ].map((card) => (
           <div
             key={card.label}
@@ -212,6 +215,23 @@ export default function ActivityPageClient() {
             </div>
           </div>
         ))}
+        {/* Dias com Meta - only show in total mode */}
+        {selectedMode === "total" && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">
+                Dias com Meta
+              </p>
+              <span className="text-xl">🎯</span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-bold text-green-400">
+                {daysWithGoal}/7
+              </span>
+              <span className="text-slate-400 text-sm">dias</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Charts */}

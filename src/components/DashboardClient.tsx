@@ -139,13 +139,16 @@ export default function DashboardClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedMode, setSelectedMode] = useState<"today" | "yesterday" | "custom" | "total">("total");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAverages, setShowAverages] = useState(false);
+  const [customDates, setCustomDates] = useState<string[]>([]);
 
   // Quick date options
   const quickDates = [
-    { label: "Hoje", value: "", getDate: () => new Date() },
-    { label: "Ontem", value: "yesterday", getDate: () => { const d = new Date(); d.setDate(d.getDate() - 1); return d; } },
+    { label: "Total", value: "", mode: "total" as const },
+    { label: "Hoje", value: "", mode: "today" as const },
+    { label: "Ontem", value: "yesterday", mode: "yesterday" as const },
   ];
 
   const fetchData = (date: string) => {
@@ -194,10 +197,16 @@ export default function DashboardClient() {
       });
   }, []);
 
-  const handleQuickDate = (value: string) => {
-    setSelectedDate(value);
-    setShowDatePicker(false);
-    fetchData(value);
+  const handleQuickDate = (value: string, mode: "today" | "yesterday" | "custom" | "total") => {
+    setSelectedMode(mode);
+    if (mode === "total") {
+      setSelectedDate("");
+      fetchData("");
+    } else {
+      setSelectedDate(value);
+      setShowDatePicker(false);
+      fetchData(value);
+    }
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -207,6 +216,7 @@ export default function DashboardClient() {
       const date = new Date(dateValue);
       const dateStr = date.toISOString().split("T")[0];
       setSelectedDate(dateStr);
+      setSelectedMode("custom");
       setShowDatePicker(false);
       fetchData(dateStr);
     } else {
@@ -363,10 +373,10 @@ export default function DashboardClient() {
           {/* Quick date buttons */}
           {quickDates.map((q) => (
             <button
-              key={q.value}
-              onClick={() => handleQuickDate(q.value)}
+              key={q.mode}
+              onClick={() => handleQuickDate(q.value, q.mode)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                selectedDate === q.value
+                selectedMode === q.mode
                   ? "bg-blue-500 text-white"
                   : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
               }`}
@@ -380,7 +390,7 @@ export default function DashboardClient() {
             <button
               onClick={() => setShowDatePicker(!showDatePicker)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
-                selectedDate && !quickDates.find(q => q.value === selectedDate)
+                selectedMode === "custom"
                   ? "bg-blue-500 text-white"
                   : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
               }`}
@@ -388,7 +398,7 @@ export default function DashboardClient() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              {selectedDate && !quickDates.find(q => q.value === selectedDate) 
+              {selectedMode === "custom" && selectedDate 
                 ? new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR")
                 : "Personalizado"}
             </button>

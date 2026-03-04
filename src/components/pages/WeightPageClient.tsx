@@ -152,7 +152,7 @@ export default function WeightPageClient() {
       <div>
         <h1 className="text-2xl font-bold text-white">Histórico de Peso</h1>
         <p className="text-slate-400 text-sm mt-1">
-          Evolução dos últimos 90 dias
+          Evolução dos últimos 30 dias
         </p>
       </div>
 
@@ -235,7 +235,7 @@ export default function WeightPageClient() {
             </div>
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
               <p className="text-slate-400 text-xs uppercase tracking-wide mb-2">
-                Variação (90 dias)
+                Variação (30 dias)
               </p>
               <div className="flex items-baseline gap-1">
                 <span
@@ -373,7 +373,7 @@ export default function WeightPageClient() {
               Evolução do Peso
             </h3>
             <p className="text-slate-400 text-xs mb-4">
-              Últimos 90 dias
+              Últimos 30 dias
             </p>
             <WeightChart data={combinedData} />
           </div>

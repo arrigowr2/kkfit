@@ -75,15 +75,20 @@ export default function DashboardNav({ user }: DashboardNavProps) {
 
           {/* User menu */}
           <div className="flex items-center gap-3">
-            {user?.image && (
+            {user?.image ? (
               <div className="relative">
                 <Image
                   src={user.image}
                   alt={user.name || "User"}
-                  width={40}
-                  height={40}
-                  className="rounded-full border-2 border-blue-500/50"
+                  width={36}
+                  height={36}
+                  className="rounded-full border-2 border-blue-500/50 w-9 h-9"
+                  unoptimized
                 />
+              </div>
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-blue-500/20 border-2 border-blue-500/50 flex items-center justify-center text-blue-400 font-bold">
+                {user?.name ? user.name.charAt(0).toUpperCase() : "?"}
               </div>
             )}
             <div className="hidden sm:block">
