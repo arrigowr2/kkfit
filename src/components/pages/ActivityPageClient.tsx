@@ -97,8 +97,8 @@ export default function ActivityPageClient() {
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const dateValue = e.target.value;
     if (dateValue) {
-      const date = new Date(dateValue);
-      const dateStr = date.toISOString().split("T")[0];
+      // HTML date input already returns YYYY-MM-DD format in local time
+      const dateStr = dateValue;
       // Add to pending dates (toggle)
       setPendingDates(prev => {
         if (prev.includes(dateStr)) {
@@ -138,6 +138,14 @@ export default function ActivityPageClient() {
 
   const today = data?.today;
   
+  // Helper to get local date string in YYYY-MM-DD format
+  const getLocalDateStr = (date: Date = new Date()): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // For total mode: use last 7 days. For custom/today/yesterday: use only the selected dates
   const stepsArr = data?.steps || [];
   const caloriesArr = data?.calories || [];
@@ -152,16 +160,16 @@ export default function ActivityPageClient() {
     displayCalories = caloriesArr.slice(-7);
     displayActivity = activityArr.slice(-7);
   } else if (selectedMode === "today") {
-    // For today: only show today's data
-    const todayStr = new Date().toISOString().split("T")[0];
+    // For today: only show today's data (use local time, not UTC)
+    const todayStr = getLocalDateStr();
     displaySteps = stepsArr.filter(d => d.date === todayStr);
     displayCalories = caloriesArr.filter(d => d.date === todayStr);
     displayActivity = activityArr.filter(d => d.date === todayStr);
   } else if (selectedMode === "yesterday") {
-    // For yesterday: only show yesterday's data
+    // For yesterday: only show yesterday's data (use local time)
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
+    const yesterdayStr = getLocalDateStr(yesterday);
     displaySteps = stepsArr.filter(d => d.date === yesterdayStr);
     displayCalories = caloriesArr.filter(d => d.date === yesterdayStr);
     displayActivity = activityArr.filter(d => d.date === yesterdayStr);
@@ -230,7 +238,7 @@ export default function ActivityPageClient() {
                 <input
                   type="date"
                   onChange={handleDateChange}
-                  max={new Date().toISOString().split("T")[0]}
+                  max={getLocalDateStr()}
                   className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 focus:outline-none w-full"
                 />
                 

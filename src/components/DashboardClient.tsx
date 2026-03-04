@@ -227,12 +227,19 @@ export default function DashboardClient() {
     }
   };
 
+  // Helper to get local date string in YYYY-MM-DD format
+  const getLocalDateStr = (date: Date = new Date()): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const dateValue = e.target.value;
     if (dateValue) {
-      // Convert to the format expected by API
-      const date = new Date(dateValue);
-      const dateStr = date.toISOString().split("T")[0];
+      // Convert to the format expected by API (local time, not UTC)
+      const dateStr = dateValue; // HTML date input already returns YYYY-MM-DD
       // Add to pending dates (toggle)
       setPendingDates(prev => {
         if (prev.includes(dateStr)) {
@@ -454,7 +461,7 @@ export default function DashboardClient() {
                 <input
                   type="date"
                   onChange={handleDateChange}
-                  max={new Date().toISOString().split("T")[0]}
+                  max={getLocalDateStr()}
                   className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 focus:outline-none w-full"
                 />
                 

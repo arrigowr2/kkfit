@@ -26,6 +26,8 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fixed Overview "Total": now sums all historical data instead of showing today's data
 - [x] Fixed Activity "Hoje": now shows only today's data (not total)
 - [x] Fixed Personalizado with 3+ dates: fixed date range calculation in API
+- [x] Fixed timezone issue: now uses local date instead of UTC for date comparison (fixes empty "Hoje"/"Ontem" data)
+- [x] Fixed Personalizado: now properly filters data to show only selected dates
 
 ## Current Structure
 
@@ -113,3 +115,5 @@ export async function GET() {
 | 2026-03-03 | Fixed "Hoje" button: now properly shows today's data with correct API mode handling
 | 2026-03-04 | Fixed Overview showing Total data when "Hoje" is clicked (added explicit "today" mode handling in API)
 | 2026-03-04 | Fixed multi-date selection "Invalid date format" error and Activity page showing only selected dates data
+| 2026-03-04 | Fixed timezone issue: now uses local date instead of UTC for date comparison (fixes empty "Hoje"/"Ontem" data)
+| 2026-03-04 | Fixed Personalizado: now properly filters data to show only selected dates
