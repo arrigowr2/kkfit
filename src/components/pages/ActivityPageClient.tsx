@@ -278,10 +278,26 @@ export default function ActivityPageClient() {
             </button>
             
             {showDatePicker && (
-              <div className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-10 min-w-[250px]">
+              <div
+                className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-10 min-w-[250px]"
+                onClick={(e) => {
+                  console.log("[ActivityPageClient] Click inside date picker dropdown");
+                  e.stopPropagation();
+                }}
+              >
                 <input
                   type="date"
                   onChange={handleDateChange}
+                  onInput={(e) => {
+                    console.log("[ActivityPageClient] onInput fired!", (e.target as HTMLInputElement).value);
+                    handleDateChange(e as React.ChangeEvent<HTMLInputElement>);
+                  }}
+                  onClick={(e) => {
+                    console.log("[ActivityPageClient] Date input clicked");
+                    e.stopPropagation();
+                  }}
+                  onFocus={() => console.log("[ActivityPageClient] Date input focused")}
+                  onBlur={() => console.log("[ActivityPageClient] Date input blurred")}
                   max={getLocalDateStr()}
                   className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 focus:outline-none w-full"
                 />
