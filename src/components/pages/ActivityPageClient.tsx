@@ -109,19 +109,26 @@ export default function ActivityPageClient() {
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("[ActivityPageClient] handleDateChange FIRED!");
+    console.log("[ActivityPageClient] Event target:", e.target);
+    console.log("[ActivityPageClient] Event target value:", e.target.value);
     const dateValue = e.target.value;
     console.log("[ActivityPageClient] Date picker changed:", dateValue);
     if (dateValue) {
       // HTML date input already returns YYYY-MM-DD format in local time
       const dateStr = dateValue;
+      console.log("[ActivityPageClient] Processing date:", dateStr);
       // Add to pending dates (toggle)
       setPendingDates(prev => {
+        console.log("[ActivityPageClient] Current pending dates:", prev);
         const newDates = prev.includes(dateStr)
           ? prev.filter(d => d !== dateStr)
           : [...prev, dateStr].sort();
-        console.log("[ActivityPageClient] Pending dates updated:", newDates);
+        console.log("[ActivityPageClient] New pending dates:", newDates);
         return newDates;
       });
+    } else {
+      console.log("[ActivityPageClient] No date value received");
     }
   };
 
@@ -251,7 +258,11 @@ export default function ActivityPageClient() {
           {/* Custom date picker */}
           <div className="relative">
             <button
-              onClick={() => setShowDatePicker(!showDatePicker)}
+              onClick={() => {
+                const newState = !showDatePicker;
+                console.log("[ActivityPageClient] Toggling date picker:", newState);
+                setShowDatePicker(newState);
+              }}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
                 selectedMode === "custom"
                   ? "bg-blue-500 text-white"
