@@ -108,6 +108,30 @@ export default function ActivityPageClient() {
     }
   };
 
+  // Prevent dropdown from closing when clicking inside
+  const datePickerRef = React.useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (!showDatePicker) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+        console.log("[ActivityPageClient] Click outside detected, closing picker");
+        setShowDatePicker(false);
+      }
+    };
+    
+    // Delay to avoid immediate close on the button click that opens it
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+    
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDatePicker]);
+
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log("[ActivityPageClient] handleDateChange FIRED!");
     console.log("[ActivityPageClient] Event target:", e.target);
@@ -279,25 +303,13 @@ export default function ActivityPageClient() {
             
             {showDatePicker && (
               <div
-                className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-10 min-w-[250px]"
-                onClick={(e) => {
-                  console.log("[ActivityPageClient] Click inside date picker dropdown");
-                  e.stopPropagation();
-                }}
+                ref={datePickerRef}
+                className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-50 min-w-[280px]"
               >
                 <input
                   type="date"
                   onChange={handleDateChange}
-                  onInput={(e) => {
-                    console.log("[ActivityPageClient] onInput fired!", (e.target as HTMLInputElement).value);
-                    handleDateChange(e as React.ChangeEvent<HTMLInputElement>);
-                  }}
-                  onClick={(e) => {
-                    console.log("[ActivityPageClient] Date input clicked");
-                    e.stopPropagation();
-                  }}
-                  onFocus={() => console.log("[ActivityPageClient] Date input focused")}
-                  onBlur={() => console.log("[ActivityPageClient] Date input blurred")}
+                  className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 focus:outline-none w-full"
                   max={getLocalDateStr()}
                   className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 focus:outline-none w-full"
                 />
