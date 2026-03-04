@@ -151,8 +151,22 @@ export default function ActivityPageClient() {
     displaySteps = stepsArr.slice(-7);
     displayCalories = caloriesArr.slice(-7);
     displayActivity = activityArr.slice(-7);
+  } else if (selectedMode === "today") {
+    // For today: only show today's data
+    const todayStr = new Date().toISOString().split("T")[0];
+    displaySteps = stepsArr.filter(d => d.date === todayStr);
+    displayCalories = caloriesArr.filter(d => d.date === todayStr);
+    displayActivity = activityArr.filter(d => d.date === todayStr);
+  } else if (selectedMode === "yesterday") {
+    // For yesterday: only show yesterday's data
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
+    displaySteps = stepsArr.filter(d => d.date === yesterdayStr);
+    displayCalories = caloriesArr.filter(d => d.date === yesterdayStr);
+    displayActivity = activityArr.filter(d => d.date === yesterdayStr);
   } else {
-    // For today, yesterday, or custom - show only the data for those dates
+    // For custom - show all data for the selected dates (API returns filtered data)
     displaySteps = stepsArr;
     displayCalories = caloriesArr;
     displayActivity = activityArr;

@@ -68,9 +68,9 @@ export async function GET(request: Request) {
 
     if (isTotal) {
       // Get all data (Total) - no specific date, get maximum historical data
-      [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
+      // For Total, calculate sum from all historical data
+      [stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
         await Promise.all([
-          getTodaySummary(session.accessToken),
           getStepsData(session.accessToken, 90),
           getCaloriesData(session.accessToken, 90),
           getHeartRateData(session.accessToken, 90),
@@ -78,6 +78,19 @@ export async function GET(request: Request) {
           getWeightData(session.accessToken, 90),
           getActivityData(session.accessToken, 90),
         ]);
+      
+      // Calculate sum from all data for "total" display
+      const sumSteps = (stepsData || []).reduce((sum, d) => sum + d.steps, 0);
+      const sumCalories = (caloriesData || []).reduce((sum, d) => sum + d.calories, 0);
+      const sumActivity = (activityData || []).reduce((sum, d) => sum + d.activeMinutes, 0);
+      const sumDistance = (activityData || []).reduce((sum, d) => sum + d.distance, 0);
+      
+      todayData = {
+        steps: sumSteps,
+        calories: sumCalories,
+        activeMinutes: sumActivity,
+        distance: sumDistance
+      };
     } else if (isToday) {
       // Get today's summary and last 30 days for charts
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =

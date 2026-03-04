@@ -75,11 +75,19 @@ export async function getStepsData(
   days: number = 30,
   specificDate?: string
 ): Promise<DailySteps[]> {
-  const endTime = specificDate 
-    ? new Date(specificDate + "T23:59:59") 
-    : new Date();
-  const startTime = new Date(endTime);
-  startTime.setDate(startTime.getDate() - days);
+  let startTime: Date;
+  let endTime: Date;
+  
+  if (specificDate) {
+    // specificDate is the END date, calculate start from end
+    endTime = new Date(specificDate + "T23:59:59");
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - days + 1); // +1 to include the end date
+  } else {
+    endTime = new Date();
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - days);
+  }
 
   const body = {
     aggregateBy: [
@@ -120,11 +128,18 @@ export async function getCaloriesData(
   days: number = 30,
   specificDate?: string
 ): Promise<DailyCalories[]> {
-  const endTime = specificDate 
-    ? new Date(specificDate + "T23:59:59") 
-    : new Date();
-  const startTime = new Date(endTime);
-  startTime.setDate(startTime.getDate() - days);
+  let startTime: Date;
+  let endTime: Date;
+  
+  if (specificDate) {
+    endTime = new Date(specificDate + "T23:59:59");
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - days + 1);
+  } else {
+    endTime = new Date();
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - days);
+  }
 
   const body = {
     aggregateBy: [
@@ -308,11 +323,18 @@ export async function getActivityData(
   days: number = 30,
   specificDate?: string
 ): Promise<ActivityData[]> {
-  const endTime = specificDate 
-    ? new Date(specificDate + "T23:59:59") 
-    : new Date();
-  const startTime = new Date(endTime);
-  startTime.setDate(startTime.getDate() - days);
+  let startTime: Date;
+  let endTime: Date;
+  
+  if (specificDate) {
+    endTime = new Date(specificDate + "T23:59:59");
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - days + 1);
+  } else {
+    endTime = new Date();
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - days);
+  }
 
   const [activeMinutesData, distanceData] = await Promise.all([
     fetchFitData(accessToken, "/dataset:aggregate", {
