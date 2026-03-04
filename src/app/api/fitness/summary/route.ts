@@ -58,8 +58,9 @@ export async function GET(request: Request) {
     dateStr = `${year}-${month}-${day}`;
     console.log("[Summary API] isYesterday=true, dateStr:", dateStr);
   } else if (dateParam && dateParam !== "yesterday" && !dateParam.includes(",")) {
-    // Single custom date - not multiple dates
-    targetDate = new Date(dateParam + "T00:00:00");
+    // Single custom date - parse manually to avoid UTC issues
+    const [year, month, day] = dateParam.split('-').map(Number);
+    targetDate = new Date(year, month - 1, day); // month is 0-indexed
     dateStr = dateParam;
   } else {
     targetDate = new Date();
@@ -132,8 +133,11 @@ export async function GET(request: Request) {
       const sortedDates = [...dateList].sort();
       const firstDate = sortedDates[0];
       const lastDate = sortedDates[sortedDates.length - 1];
-      const first = new Date(firstDate + "T00:00:00");
-      const last = new Date(lastDate + "T00:00:00");
+      // Parse dates manually to avoid UTC issues
+      const [firstYear, firstMonth, firstDay] = firstDate.split('-').map(Number);
+      const [lastYear, lastMonth, lastDay] = lastDate.split('-').map(Number);
+      const first = new Date(firstYear, firstMonth - 1, firstDay);
+      const last = new Date(lastYear, lastMonth - 1, lastDay);
       // Calculate actual number of days in the range
       const daysDiff = (last.getTime() - first.getTime()) / (1000 * 60 * 60 * 24);
       const numDays = Math.round(daysDiff) + 1;

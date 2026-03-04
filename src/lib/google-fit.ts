@@ -535,9 +535,10 @@ export async function getTodaySummary(accessToken: string) {
 
 // Get data for a specific date
 export async function getDailyData(accessToken: string, dateStr: string) {
-  const targetDate = new Date(dateStr + "T00:00:00");
-  const endDate = new Date(targetDate);
-  endDate.setDate(endDate.getDate() + 1);
+  // Parse date components manually to avoid UTC timezone issues
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const targetDate = new Date(year, month - 1, day); // month is 0-indexed
+  const endDate = new Date(year, month - 1, day + 1);
 
   const body = {
     aggregateBy: [
