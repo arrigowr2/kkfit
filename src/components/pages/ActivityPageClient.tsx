@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import StepsChart from "@/components/charts/StepsChart";
 import CaloriesChart from "@/components/charts/CaloriesChart";
 import {
@@ -16,6 +16,12 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface ActivityData {
+  today: {
+    steps: number;
+    calories: number;
+    activeMinutes: number;
+    distance: number;
+  } | null;
   steps: { date: string; steps: number }[];
   calories: { date: string; calories: number }[];
   activity: { date: string; activeMinutes: number; distance: number }[];
@@ -24,6 +30,26 @@ interface ActivityData {
 export default function ActivityPageClient() {
   const [data, setData] = useState<ActivityData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Quick date options
+  const quickDates = [
+    { label: "Hoje", value: "", getDate: () => new Date() },
+    { label: "Ontem", value: "yesterday", getDate: () => { const d = new Date(); d.setDate(d.getDate() - 1); return d; } },
+  ];
+
+  const fetchData = (date: string) => {
+    setLoading(true);
+    const url = date ? `/api/fitness/summary?date=${date}` : "/api/fitness/summary";
+    fetch(url)
+      .then((r) => r.json())
+      .then((d) => {
+        setData(d);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  };
 
   useEffect(() => {
     fetch("/api/fitness/summary")
@@ -35,6 +61,27 @@ export default function ActivityPageClient() {
       .catch(() => setLoading(false));
   }, []);
 
+  const handleQuickDate = (value: string) => {
+    setSelectedDate(value);
+    setShowDatePicker(false);
+    fetchData(value);
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const dateValue = e.target.value;
+    if (dateValue) {
+      const date = new Date(dateValue);
+      const dateStr = date.toISOString().split("T")[0];
+      setSelectedDate(dateStr);
+      setShowDatePicker(false);
+      fetchData(dateStr);
+    } else {
+      setSelectedDate("");
+      setShowDatePicker(false);
+      fetchData("");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -43,24 +90,76 @@ export default function ActivityPageClient() {
     );
   }
 
-  const totalSteps = data?.steps.reduce((a, b) => a + b.steps, 0) || 0;
-  const totalCalories =
-    data?.calories.reduce((a, b) => a + b.calories, 0) || 0;
-  const totalDistance =
-    data?.activity.reduce((a, b) => a + b.distance, 0) || 0;
-  const totalActiveMinutes =
-    data?.activity.reduce((a, b) => a + b.activeMinutes, 0) || 0;
-  const daysWithGoal = data?.steps.filter((d) => d.steps >= 10000).length || 0;
+  const today = data?.today;
+  
+  // Calculate weekly data (last 7 days)
+  const weeklySteps = (data?.steps || []).slice(-7);
+  const weeklyCalories = (data?.calories || []).slice(-7);
+  const weeklyActivity = (data?.activity || []).slice(-7);
+  
+  const totalSteps = weeklySteps.reduce((a, b) => a + b.steps, 0);
+  const totalCalories = weeklyCalories.reduce((a, b) => a + b.calories, 0);
+  const totalDistance = weeklyActivity.reduce((a, b) => a + b.distance, 0);
+  const totalActiveMinutes = weeklyActivity.reduce((a, b) => a + b.activeMinutes, 0);
+  const daysWithGoal = weeklySteps.filter((d) => d.steps >= 10000).length;
 
-  const last14Activity = (data?.activity || []).slice(-14);
+  const last7Activity = (data?.activity || []).slice(-7);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Atividade Física</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Análise detalhada dos últimos 30 dias
-        </p>
+      {/* Header with Date Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Atividade Física</h1>
+        </div>
+        
+        {/* Date Selector */}
+        <div className="flex items-center gap-2">
+          {quickDates.map((q) => (
+            <button
+              key={q.value}
+              onClick={() => handleQuickDate(q.value)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                selectedDate === q.value
+                  ? "bg-blue-500 text-white"
+                  : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+              }`}
+            >
+              {q.label}
+            </button>
+          ))}
+          
+          {/* Custom date picker */}
+          <div className="relative">
+            <button
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
+                selectedDate && !quickDates.find(q => q.value === selectedDate)
+                  ? "bg-blue-500 text-white"
+                  : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {selectedDate && !quickDates.find(q => q.value === selectedDate) 
+                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR")
+                : "Personalizado"}
+            </button>
+            
+            {showDatePicker && (
+              <div className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-10">
+                <input
+                  type="date"
+                  onChange={handleDateChange}
+                  max={new Date().toISOString().split("T")[0]}
+                  className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 focus:outline-none"
+                />
+                <p className="text-xs text-slate-500 mt-2">Selecione uma data específica</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -89,7 +188,7 @@ export default function ActivityPageClient() {
           },
           {
             label: "Dias com Meta",
-            value: `${daysWithGoal}/${data?.steps.length || 0}`,
+            value: `${daysWithGoal}/7`,
             unit: "dias",
             color: "text-green-400",
             icon: "🎯",
@@ -120,15 +219,15 @@ export default function ActivityPageClient() {
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
           <h3 className="text-white font-semibold mb-1">Passos Diários</h3>
           <p className="text-slate-400 text-xs mb-4">
-            Linha azul = meta de 10.000 passos
+            Últimos 7 dias
           </p>
-          <StepsChart data={data?.steps || []} />
+          <StepsChart data={weeklySteps} />
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
           <h3 className="text-white font-semibold mb-1">Calorias Queimadas</h3>
-          <p className="text-slate-400 text-xs mb-4">Últimos 14 dias</p>
-          <CaloriesChart data={data?.calories || []} />
+          <p className="text-slate-400 text-xs mb-4">Últimos 7 dias</p>
+          <CaloriesChart data={weeklyCalories} />
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 lg:col-span-2">
@@ -136,11 +235,11 @@ export default function ActivityPageClient() {
             Minutos de Atividade
           </h3>
           <p className="text-slate-400 text-xs mb-4">
-            Meta: 30 minutos por dia
+            Semanal (7 dias)
           </p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart
-              data={last14Activity}
+              data={last7Activity}
               margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />

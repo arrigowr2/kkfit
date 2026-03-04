@@ -21,6 +21,7 @@ const navItems = [
   { href: "/dashboard/heart", label: "Coração", icon: "❤️" },
   { href: "/dashboard/sleep", label: "Sono", icon: "😴" },
   { href: "/dashboard/weight", label: "Peso", icon: "⚖️" },
+  { href: "/dashboard/profile", label: "Perfil", icon: "👤" },
 ];
 
 export default function DashboardNav({ user }: DashboardNavProps) {
@@ -75,13 +76,15 @@ export default function DashboardNav({ user }: DashboardNavProps) {
           {/* User menu */}
           <div className="flex items-center gap-3">
             {user?.image && (
-              <Image
-                src={user.image}
-                alt={user.name || "User"}
-                width={32}
-                height={32}
-                className="rounded-full border border-slate-700"
-              />
+              <div className="relative">
+                <Image
+                  src={user.image}
+                  alt={user.name || "User"}
+                  width={40}
+                  height={40}
+                  className="rounded-full border-2 border-blue-500/50"
+                />
+              </div>
             )}
             <div className="hidden sm:block">
               <p className="text-sm font-medium text-white">{user?.name}</p>
