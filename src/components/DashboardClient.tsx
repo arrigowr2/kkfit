@@ -226,6 +226,7 @@ export default function DashboardClient() {
       console.log("[DashboardClient] Fetching YESTERDAY data, value:", value);
       fetchData(value, "yesterday");
     } else if (mode === "custom") {
+      console.log("[DashboardClient] Opening date picker (Personalizado)");
       setShowDatePicker(true);
     }
   };
@@ -239,27 +240,38 @@ export default function DashboardClient() {
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("[DashboardClient] handleDateChange FIRED!");
+    console.log("[DashboardClient] Event target:", e.target);
+    console.log("[DashboardClient] Event target value:", e.target.value);
     const dateValue = e.target.value;
+    console.log("[DashboardClient] Date picker changed:", dateValue);
     if (dateValue) {
       // Convert to the format expected by API (local time, not UTC)
       const dateStr = dateValue; // HTML date input already returns YYYY-MM-DD
+      console.log("[DashboardClient] Processing date:", dateStr);
       // Add to pending dates (toggle)
       setPendingDates(prev => {
-        if (prev.includes(dateStr)) {
-          return prev.filter(d => d !== dateStr);
-        }
-        return [...prev, dateStr].sort();
+        console.log("[DashboardClient] Current pending dates:", prev);
+        const newDates = prev.includes(dateStr)
+          ? prev.filter(d => d !== dateStr)
+          : [...prev, dateStr].sort();
+        console.log("[DashboardClient] New pending dates:", newDates);
+        return newDates;
       });
+    } else {
+      console.log("[DashboardClient] No date value received");
     }
   };
 
   const handleApplyDates = () => {
+    console.log("[DashboardClient] handleApplyDates called, pendingDates:", pendingDates);
     if (pendingDates.length > 0) {
       setCustomDates(pendingDates);
       setSelectedMode("custom");
       setShowDatePicker(false);
       // Fetch data for the selected dates
       const dateParam = pendingDates.join(",");
+      console.log("[DashboardClient] Fetching multiple dates:", dateParam);
       fetch(`/api/fitness/summary?date=${dateParam}&mode=multiple`)
         .then((res) => {
           if (!res.ok) {
