@@ -121,7 +121,7 @@ export async function GET(request: Request) {
       sleepData = (sleepData || []).filter(d => d.date === todayStr);
     } else if (isMultiple) {
       // Multiple dates - comma-separated
-      const dateList = dateParam.split(",").filter(d => d.trim());
+      const dateList = dateParam.split(",").map(d => d.trim());
       // Sort dates and calculate the range properly
       const sortedDates = [...dateList].sort();
       const firstDate = sortedDates[0];
@@ -129,9 +129,10 @@ export async function GET(request: Request) {
       const first = new Date(firstDate + "T00:00:00");
       const last = new Date(lastDate + "T00:00:00");
       // Calculate actual number of days in the range
-      const numDays = Math.ceil((last.getTime() - first.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const daysDiff = (last.getTime() - first.getTime()) / (1000 * 60 * 60 * 24);
+      const numDays = Math.round(daysDiff) + 1;
       
-      // Get data for the date range
+      // Get data for the date range - use lastDate to calculate range correctly
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
         await Promise.all([
           Promise.resolve({
@@ -140,12 +141,12 @@ export async function GET(request: Request) {
             activeMinutes: 0,
             distance: 0
           }),
-          getStepsData(session.accessToken, numDays, firstDate),
-          getCaloriesData(session.accessToken, numDays, firstDate),
-          getHeartRateData(session.accessToken, numDays, firstDate),
-          getSleepData(session.accessToken, numDays, firstDate),
+          getStepsData(session.accessToken, numDays, lastDate),
+          getCaloriesData(session.accessToken, numDays, lastDate),
+          getHeartRateData(session.accessToken, numDays, lastDate),
+          getSleepData(session.accessToken, numDays, lastDate),
           getWeightData(session.accessToken, 90, lastDate),
-          getActivityData(session.accessToken, numDays, firstDate),
+          getActivityData(session.accessToken, numDays, lastDate),
         ]);
       
       // Filter to only include the exact dates selected

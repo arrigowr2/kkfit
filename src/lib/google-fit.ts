@@ -423,10 +423,16 @@ export async function getActivityData(
 }
 
 export async function getTodaySummary(accessToken: string) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  // Use local date for consistency with user timezone
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
+  
+  const targetDate = new Date(todayStr + "T00:00:00");
+  const endDate = new Date(targetDate);
+  endDate.setDate(endDate.getDate() + 1);
 
   const body = {
     aggregateBy: [
@@ -436,8 +442,8 @@ export async function getTodaySummary(accessToken: string) {
       { dataTypeName: "com.google.distance.delta" },
     ],
     bucketByTime: { durationMillis: 86400000 },
-    startTimeMillis: today.getTime(),
-    endTimeMillis: tomorrow.getTime(),
+    startTimeMillis: targetDate.getTime(),
+    endTimeMillis: endDate.getTime(),
   };
 
   const data = await fetchFitData(accessToken, "/dataset:aggregate", body);
