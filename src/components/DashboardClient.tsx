@@ -282,6 +282,10 @@ export default function DashboardClient() {
           return res.json();
         })
         .then((d) => {
+          console.log("[DashboardClient] API Response received:", d);
+          console.log("[DashboardClient] Steps data:", d.steps);
+          console.log("[DashboardClient] Steps dates:", d.steps?.map((s: {date: string}) => s.date));
+          console.log("[DashboardClient] Today data:", d.today);
           setData(d);
           setLoading(false);
         })

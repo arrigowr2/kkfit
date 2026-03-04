@@ -178,14 +178,19 @@ export async function GET(request: Request) {
       
       // Filter to only include the exact dates selected
       const dateSet = new Set(dateList);
-      console.log("[Summary API] dateSet:", [...dateSet]);
-      console.log("[Summary API] Steps data before filter:", stepsData?.map(d => d.date));
+      console.log("[Summary API] === FILTERING DATA ===");
+      console.log("[Summary API] User selected dates (dateSet):", [...dateSet]);
+      console.log("[Summary API] Steps data from Google Fit:", stepsData?.map(d => `${d.date}=${d.steps}`));
+      console.log("[Summary API] Calories data from Google Fit:", caloriesData?.map(d => `${d.date}=${d.calories}`));
+      console.log("[Summary API] Activity data from Google Fit:", activityData?.map(d => `${d.date}=${d.activeMinutes}`));
       stepsData = (stepsData || []).filter(d => dateSet.has(d.date));
       caloriesData = (caloriesData || []).filter(d => dateSet.has(d.date));
       activityData = (activityData || []).filter(d => dateSet.has(d.date));
       heartRateData = (heartRateData || []).filter(d => dateSet.has(d.date));
       sleepData = (sleepData || []).filter(d => dateSet.has(d.date));
-      console.log("[Summary API] Steps data after filter:", stepsData);
+      console.log("[Summary API] Steps data AFTER filter:", stepsData);
+      console.log("[Summary API] Calories data AFTER filter:", caloriesData);
+      console.log("[Summary API] Activity data AFTER filter:", activityData);
       
       // Calculate the sum for todayData from the filtered data arrays
       const sumSteps = (stepsData || []).reduce((sum, d) => sum + d.steps, 0);
