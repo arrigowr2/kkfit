@@ -28,6 +28,8 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fixed Personalizado with 3+ dates: fixed date range calculation in API
 - [x] Fixed timezone issue: now uses local date instead of UTC for date comparison (fixes empty "Hoje"/"Ontem" data)
 - [x] Fixed Personalizado: now properly filters data to show only selected dates
+- [x] Fixed Today/Yesterday/Personalizado showing empty data - changed google-fit.ts to use local date parsing instead of UTC
+- [x] Fixed API route to filter data correctly for 'today' and 'yesterday' modes
 
 ## Current Structure
 
