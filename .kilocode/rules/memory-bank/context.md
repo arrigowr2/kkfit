@@ -20,6 +20,9 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fixed download: use API route at /api/download with dynamic file path detection
 - [x] Fixed Overview: default to Total on load, buttons work correctly, multi-date selection works
 - [x] Fixed "Hoje" button: now properly shows today's data with correct API mode handling
+- [x] Fixed multi-date selection error "Invalid date format" (added comma check in API)
+- [x] Fixed Activity page: now shows data for selected dates only (not just last 7 days)
+- [x] Fixed multi-date totals: now calculates sum from data arrays
 
 ## Current Structure
 
@@ -106,3 +109,4 @@ export async function GET() {
 | 2026-03-03 | Fixed Overview: default to Total on load, buttons work correctly, multi-date selection works
 | 2026-03-03 | Fixed "Hoje" button: now properly shows today's data with correct API mode handling
 | 2026-03-04 | Fixed Overview showing Total data when "Hoje" is clicked (added explicit "today" mode handling in API)
+| 2026-03-04 | Fixed multi-date selection "Invalid date format" error and Activity page showing only selected dates data
