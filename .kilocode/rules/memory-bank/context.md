@@ -18,6 +18,8 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Added download button directly on login page
 - [x] Fixed download: moved kkfit-deployment.zip from downloads/ to public/ folder for static serving
 - [x] Fixed download: use API route at /api/download with dynamic file path detection
+- [x] Fixed Overview: default to Total on load, buttons work correctly, multi-date selection works
+- [x] Fixed "Hoje" button: now properly shows today's data with correct API mode handling
 
 ## Current Structure
 
@@ -101,3 +103,6 @@ export async function GET() {
 | 2026-03-03 | Fixed auth.ts: added explicit AUTH_SECRET configuration and validation for environment variables |
 | 2026-03-03 | Pushed all changes to remote |
 | 2026-03-03 | Fixed OAuth 400 error: corrected duplicate https:// prefix in callback URL (was `https://https://...`)
+| 2026-03-03 | Fixed Overview: default to Total on load, buttons work correctly, multi-date selection works
+| 2026-03-03 | Fixed "Hoje" button: now properly shows today's data with correct API mode handling
+| 2026-03-04 | Fixed Overview showing Total data when "Hoje" is clicked (added explicit "today" mode handling in API)
