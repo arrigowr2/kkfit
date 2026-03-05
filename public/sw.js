@@ -74,7 +74,6 @@ self.addEventListener('fetch', (event) => {
           console.error('Fetch failed:', error);
           return response;
         })
-        })
       );
     })
   );
