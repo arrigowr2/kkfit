@@ -54,7 +54,7 @@ self.addEventListener('fetch', (event) => {
       // Return cached version or fetch from network
       return (
         response ||
-        fetch(event.request).then((fetchResponse) => {
+        fetch(event.request, { redirect: 'follow' }).then((fetchResponse) => {
           // Don't cache non-successful responses
           if (!fetchResponse || fetchResponse.status !== 200) {
             return fetchResponse;
@@ -69,6 +69,11 @@ self.addEventListener('fetch', (event) => {
           });
 
           return fetchResponse;
+        }).catch((error) => {
+          // If fetch fails (e.g., network error, redirect), try to return cached version
+          console.error('Fetch failed:', error);
+          return response;
+        })
         })
       );
     })
