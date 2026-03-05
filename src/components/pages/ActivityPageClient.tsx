@@ -45,18 +45,22 @@ export default function ActivityPageClient() {
 
   const fetchData = (date: string, mode: string) => {
     setLoading(true);
-    // If mode is 'total', send 'total' as param; if mode is 'today', send 'today'; otherwise send the date
+    // If mode is 'total', send 'total' as param; if mode is 'today' and no date provided, send 'today'; otherwise send the date
     let url: string;
     if (mode === "total") {
       url = "/api/fitness/summary?date=total";
-    } else if (mode === "today") {
+    } else if (mode === "today" && !date) {
+      // Only use "today" keyword if no specific date is provided
       url = "/api/fitness/summary?date=today";
-    } else if (mode === "yesterday") {
+    } else if (mode === "yesterday" && !date) {
       url = "/api/fitness/summary?date=yesterday";
     } else if (mode === "multiple" && date) {
       url = `/api/fitness/summary?date=${date}&mode=multiple`;
+    } else if (date) {
+      // Use the specific date provided
+      url = `/api/fitness/summary?date=${date}`;
     } else {
-      url = date ? `/api/fitness/summary?date=${date}` : "/api/fitness/summary?date=total";
+      url = "/api/fitness/summary?date=total";
     }
     fetch(url)
       .then((r) => r.json())
