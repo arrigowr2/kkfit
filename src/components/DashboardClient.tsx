@@ -306,10 +306,13 @@ export default function DashboardClient() {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    const result = `${year}-${month}-${day}`;
+    console.log("[getLocalDateStr] Input:", date.toISOString(), "Output:", result, "Timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
+    return result;
   }, []);
 
   const handleQuickDate = useCallback((mode: "today" | "yesterday" | "custom" | "total") => {
+    console.log("[handleQuickDate] Mode:", mode, "Client timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone, "Current time:", new Date().toISOString());
     setSelectedMode(mode);
     if (mode === "custom") {
       setShowDatePicker(true);
@@ -320,11 +323,13 @@ export default function DashboardClient() {
       // instead of letting server calculate (server is UTC)
       if (mode === "today") {
         const todayStr = getLocalDateStr();
+        console.log("[handleQuickDate] Today calculated:", todayStr);
         fetchData(mode, [todayStr]);
       } else if (mode === "yesterday") {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = getLocalDateStr(yesterday);
+        console.log("[handleQuickDate] Yesterday calculated:", yesterdayStr);
         fetchData(mode, [yesterdayStr]);
       } else {
         // Fetch data immediately for non-custom modes
