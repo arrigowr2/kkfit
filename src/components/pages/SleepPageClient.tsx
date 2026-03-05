@@ -59,8 +59,14 @@ export default function SleepPageClient() {
           <p className="text-4xl mb-3">😴</p>
           <p className="text-slate-400">Nenhum dado de sono encontrado.</p>
           <p className="text-slate-500 text-sm mt-1">
-            Use um dispositivo compatível com Google Fit para registrar seu
-            sono.
+            Use um dispositivo compatível com Google Fit para registrar seu sono.
+          </p>
+          <p className="text-slate-500 text-sm mt-3">
+            💡 <strong>Dica:</strong> Se você já usa um dispositivo, tente{" "}
+            <a href="/signout" className="text-blue-400 hover:underline">
+              sair e fazer login novamente
+            </a>{" "}
+            para atualizar as permissões.
           </p>
         </div>
       ) : (

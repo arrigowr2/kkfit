@@ -347,14 +347,17 @@ export async function getSleepData(
   }
 
   // Try fetching from Sessions API first (more reliable for sleep data)
+  console.log("[Sleep] Fetching sleep data from", startTime, "to", endTime);
   try {
     const sessionData = await fetchSleepSessions(accessToken, startTime, endTime);
+    console.log("[Sleep] Sessions API returned:", sessionData.length, "records");
     if (sessionData.length > 0) {
-      console.log("[Sleep] Found data via Sessions API:", sessionData.length, "records");
+      console.log("[Sleep] Found data via Sessions API:", sessionData);
       return sessionData;
     }
+    console.log("[Sleep] Sessions API returned empty, trying aggregate...");
   } catch (error) {
-    console.log("[Sleep] Sessions API failed, falling back to aggregate");
+    console.log("[Sleep] Sessions API failed:", error, "- falling back to aggregate");
   }
 
   // Fallback to aggregate data approach
