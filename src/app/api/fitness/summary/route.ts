@@ -23,6 +23,10 @@ export async function GET(request: Request) {
   const mode = searchParams.get("mode"); // "multiple" for multiple dates
   const datesParam = searchParams.get("dates"); // comma-separated dates for multiple mode
   const days = parseInt(searchParams.get("days") || "30");
+  
+  // Debug logging
+  console.log("[API Summary] Request URL:", request.url);
+  console.log("[API Summary] dateParam:", dateParam, "mode:", mode, "datesParam:", datesParam);
 
   // Check if requesting multiple dates (either in dateParam or datesParam)
   const isMultiple = mode === "multiple" && 
@@ -111,6 +115,8 @@ export async function GET(request: Request) {
       const todayLocal = new Date();
       const todayStr = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
       
+      console.log("[API Summary] Today mode - todayStr:", todayStr, "Server timezone offset:", todayLocal.getTimezoneOffset());
+      
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
         await Promise.all([
           getTodaySummary(session.accessToken),
@@ -122,16 +128,26 @@ export async function GET(request: Request) {
           getActivityData(session.accessToken, 30),
         ]);
       
+      console.log("[API Summary] Today mode - Raw steps data count:", stepsData?.length || 0);
+      console.log("[API Summary] Today mode - Sample steps dates:", stepsData?.slice(0, 3).map(d => d.date));
+      console.log("[API Summary] Today mode - todayData from API:", todayData);
+      
       // Filter data to only show today (for client-side display consistency)
       stepsData = (stepsData || []).filter(d => d.date === todayStr);
       caloriesData = (caloriesData || []).filter(d => d.date === todayStr);
       activityData = (activityData || []).filter(d => d.date === todayStr);
       heartRateData = (heartRateData || []).filter(d => d.date === todayStr);
       sleepData = (sleepData || []).filter(d => d.date === todayStr);
+      
+      console.log("[API Summary] Today mode - Filtered steps data count:", stepsData.length);
     } else if (isMultiple) {
       // Multiple dates - comma-separated (use datesParam if available, fallback to dateParam)
       const datesSource = datesParam || dateParam || "";
       const dateList = datesSource.split(",").map(d => d.trim()).filter(d => d.length > 0);
+      
+      console.log("[API Summary] Multiple mode - datesSource:", datesSource);
+      console.log("[API Summary] Multiple mode - dateList:", dateList);
+      
       // Sort dates and calculate the range properly
       const sortedDates = [...dateList].sort();
       const firstDate = sortedDates[0];

@@ -241,11 +241,20 @@ export default function DashboardClient() {
         url = "/api/fitness/summary?date=total";
       }
       
+      console.log("[DashboardClient] Fetching:", { mode, dates, url });
+      
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
       const result = await response.json();
+      console.log("[DashboardClient] Response:", { 
+        targetDate: result.targetDate, 
+        today: result.today,
+        stepsCount: result.steps?.length,
+        firstStepDate: result.steps?.[0]?.date,
+        lastStepDate: result.steps?.[result.steps?.length - 1]?.date
+      });
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
