@@ -50,6 +50,7 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix .gitignore: remove public/ from ignored list so static assets deploy to Vercel
 - [x] Add .env.example template for deployment configuration
 - [x] Fix app crash on Vercel: add try/catch around auth() calls in page.tsx and dashboard/layout.tsx
+- [x] Fix app crash on Vercel: use fallback values for auth config (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, AUTH_SECRET) when env vars are missing
 
 ## Current Structure
 
