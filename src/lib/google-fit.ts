@@ -261,16 +261,17 @@ async function fetchSleepSessions(
   startTime: Date,
   endTime: Date
 ): Promise<SleepData[]> {
-  const startTimeMillis = startTime.getTime();
-  const endTimeMillis = endTime.getTime();
+  // Google Fit Sessions API expects ISO 8601 format, not milliseconds
+  const startTimeIso = startTime.toISOString();
+  const endTimeIso = endTime.toISOString();
   
   const url = new URL(`${FITNESS_API_BASE}/sessions`);
-  url.searchParams.append("startTime", startTimeMillis.toString());
-  url.searchParams.append("endTime", endTimeMillis.toString());
+  url.searchParams.append("startTime", startTimeIso);
+  url.searchParams.append("endTime", endTimeIso);
   url.searchParams.append("activityType", "72"); // Sleep activity type
   
   console.log("[Sleep Sessions] Request URL:", url.toString());
-  console.log("[Sleep Sessions] Start:", new Date(startTimeMillis).toISOString(), "End:", new Date(endTimeMillis).toISOString());
+  console.log("[Sleep Sessions] Start:", startTimeIso, "End:", endTimeIso);
   
   const response = await fetch(url.toString(), {
     method: "GET",
