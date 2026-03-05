@@ -39,6 +39,10 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix google-fit.ts: Parse specificDate manually in all get*Data functions (getStepsData, getCaloriesData, getHeartRateData, getSleepData, getWeightData, getActivityData) to use local timezone instead of UTC
 - [x] Fix CSP: allow fonts from Google Fonts (fonts.gstatic.com) and Typekit (use.typekit.net)
 - [x] Add debug logging for date selection in DashboardClient (handleDateChange, handleApplyDates, handleQuickDate)
+- [x] Fix 'Hoje' button in Activity tab to show most recent date with data (same as Overview)
+- [x] Fix Activity tab 'Hoje' button: now properly passes specific date to API
+- [x] Add better UX for sleep data: suggest re-authentication if no data found
+- [x] Add enhanced debug logging for sleep data API calls
 
 ## Current Structure
 
@@ -135,3 +139,6 @@ export async function GET() {
 | 2026-03-04 | Fixed UTC timezone issues: now parses dates manually in getDailyData and route.ts to avoid UTC conversion bugs
 | 2026-03-04 | Fixed CSP: allow fonts from Google Fonts (fonts.gstatic.com) and Typekit (use.typekit.net)
 | 2026-03-04 | Add debug logging for date selection in DashboardClient (handleDateChange, handleApplyDates, handleQuickDate)
+| 2026-03-05 | Fix Activity tab 'Hoje' button: now properly passes specific date to API
+| 2026-03-05 | Add better UX for sleep data: suggest re-authentication if no data found
+| 2026-03-05 | Add enhanced debug logging for sleep data API calls
