@@ -3,7 +3,15 @@ import { redirect } from "next/navigation";
 import LoginPage from "@/components/LoginPage";
 
 export default async function Home() {
-  const session = await auth();
+  let session = null;
+  
+  try {
+    session = await auth();
+  } catch (error) {
+    console.error("[Home] Auth error:", error);
+    // If auth fails (e.g., missing env vars), show login page
+    return <LoginPage />;
+  }
 
   // Only redirect to dashboard if the session has a valid access token.
   // If the session exists but accessToken is missing/expired, show the login
