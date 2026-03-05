@@ -1,9 +1,10 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 
-const googleClientId = process.env.GOOGLE_CLIENT_ID!;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET!;
-const authSecret = process.env.AUTH_SECRET!;
+// Allow empty strings to be treated as undefined for graceful fallback
+const googleClientId = process.env.GOOGLE_CLIENT_ID || undefined;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || undefined;
+const authSecret = process.env.AUTH_SECRET || undefined;
 const nextAuthUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL;
 
 // Handle the URL - remove any existing protocol prefix to avoid duplication
@@ -30,13 +31,19 @@ if (!googleClientId || !googleClientSecret || !authSecret) {
   }
 }
 
+// Use dummy values if env vars are missing - this allows the app to start
+// but authentication won't work without proper credentials
+const configSecret = authSecret || "dummy-secret-for-development-only";
+const configClientId = googleClientId || "dummy-client-id";
+const configClientSecret = googleClientSecret || "dummy-client-secret";
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: authSecret,
+  secret: configSecret,
   trustHost: true,
   providers: [
     Google({
-      clientId: googleClientId,
-      clientSecret: googleClientSecret,
+      clientId: configClientId,
+      clientSecret: configClientSecret,
       authorization: {
         params: {
           redirect_uri: `${baseUrl}/api/auth/callback/google`,
