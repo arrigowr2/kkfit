@@ -312,24 +312,61 @@ export default function DashboardClient() {
   }, []);
 
   const handleQuickDate = useCallback((mode: "today" | "yesterday" | "custom" | "total") => {
-    console.log("[handleQuickDate] Mode:", mode, "Client timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone, "Current time:", new Date().toISOString());
     setSelectedMode(mode);
     if (mode === "custom") {
       setShowDatePicker(true);
     } else {
       setCustomDates([]);
       setPendingDates([]);
-      // For today/yesterday, pass the actual date string from client (correct timezone)
-      // instead of letting server calculate (server is UTC)
+      // For "today", find the latest date with available data
       if (mode === "today") {
-        const todayStr = getLocalDateStr();
-        console.log("[handleQuickDate] Today calculated:", todayStr);
-        fetchData(mode, [todayStr]);
+        // First fetch total data to find the latest date with data
+        setIsLoading(true);
+        fetch("/api/fitness/summary?date=total")
+          .then(response => response.json())
+          .then((totalData: FitnessData) => {
+            // Find the latest date with steps data
+            const latestStep = totalData.steps?.length > 0
+              ? totalData.steps.reduce((latest, current) =>
+                  new Date(current.date) > new Date(latest.date) ? current : latest
+                )
+              : null;
+            // Find the latest date with any activity data
+            const latestActivity = totalData.activity?.length > 0
+              ? totalData.activity.reduce((latest, current) =>
+                  new Date(current.date) > new Date(latest.date) ? current : latest
+                )
+              : null;
+            // Use the most recent date between steps and activity
+            let latestDate: string | null = null;
+            if (latestStep && latestActivity) {
+              latestDate = new Date(latestStep.date) > new Date(latestActivity.date)
+                ? latestStep.date
+                : latestActivity.date;
+            } else if (latestStep) {
+              latestDate = latestStep.date;
+            } else if (latestActivity) {
+              latestDate = latestActivity.date;
+            }
+            
+            if (latestDate) {
+              console.log("[handleQuickDate] Latest data date:", latestDate);
+              fetchData("today", [latestDate]);
+            } else {
+              // Fallback to today if no data found
+              const todayStr = getLocalDateStr();
+              fetchData("today", [todayStr]);
+            }
+          })
+          .catch(() => {
+            // Fallback to today on error
+            const todayStr = getLocalDateStr();
+            fetchData("today", [todayStr]);
+          });
       } else if (mode === "yesterday") {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = getLocalDateStr(yesterday);
-        console.log("[handleQuickDate] Yesterday calculated:", yesterdayStr);
         fetchData(mode, [yesterdayStr]);
       } else {
         // Fetch data immediately for non-custom modes
