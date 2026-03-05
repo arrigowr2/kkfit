@@ -269,6 +269,9 @@ async function fetchSleepSessions(
   url.searchParams.append("endTime", endTimeMillis.toString());
   url.searchParams.append("activityType", "72"); // Sleep activity type
   
+  console.log("[Sleep Sessions] Request URL:", url.toString());
+  console.log("[Sleep Sessions] Start:", new Date(startTimeMillis).toISOString(), "End:", new Date(endTimeMillis).toISOString());
+  
   const response = await fetch(url.toString(), {
     method: "GET",
     headers: {
@@ -277,7 +280,8 @@ async function fetchSleepSessions(
   });
 
   if (!response.ok) {
-    console.log("[Sleep Sessions] API error:", response.status);
+    const errorText = await response.text();
+    console.log("[Sleep Sessions] API error:", response.status, errorText);
     return [];
   }
 

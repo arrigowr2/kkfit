@@ -97,6 +97,16 @@ export async function GET(request: Request) {
           getActivityData(session.accessToken, 90),
         ]);
       
+      console.log("[API Summary] Total mode - Raw data counts:", {
+        steps: stepsData?.length,
+        calories: caloriesData?.length,
+        heartRate: heartRateData?.length,
+        sleep: sleepData?.length,
+        weight: weightData?.length,
+        activity: activityData?.length,
+        sleepSample: sleepData?.slice(0, 2)
+      });
+      
       // Calculate sum from all data for "total" display
       const sumSteps = (stepsData || []).reduce((sum, d) => sum + d.steps, 0);
       const sumCalories = (caloriesData || []).reduce((sum, d) => sum + d.calories, 0);
