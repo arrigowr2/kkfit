@@ -45,6 +45,8 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Add enhanced debug logging for sleep data API calls
 - [x] Fix Sleep Sessions API error: changed from milliseconds to ISO 8601 format
 - [x] Fix Activity page 'Hoje' button: now fetches specific date instead of keyword "today"
+- [x] Improve mobile responsiveness: adjust padding, font sizes and responsive breakpoints in Dashboard and Activity pages
+- [x] Improve mobile responsiveness for Heart and Sleep pages: responsive padding and font sizes
 
 ## Current Structure
 
