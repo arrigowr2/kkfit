@@ -51,6 +51,8 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Add .env.example template for deployment configuration
 - [x] Fix app crash on Vercel: add try/catch around auth() calls in page.tsx and dashboard/layout.tsx
 - [x] Fix app crash on Vercel: use fallback values for auth config (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, AUTH_SECRET) when env vars are missing
+- [x] Fix Service Worker redirect error: add redirect: 'follow' mode and error handling in public/sw.js
+- [x] Fix Activity page calendar overflow on mobile: adjust date picker positioning with left-0 sm:left-auto classes
 
 ## Current Structure
 
@@ -155,3 +157,5 @@ export async function GET() {
 | 2026-03-05 | Improve mobile responsiveness: adjust padding, font sizes and responsive breakpoints
 | 2026-03-05 | Fix .gitignore: remove public/ from ignored list so static assets deploy to Vercel
 | 2026-03-05 | Add .env.example template for deployment configuration
+| 2026-03-05 | Fix Service Worker redirect error: add redirect follow mode and error handling
+| 2026-03-05 | Fix Activity page calendar overflow on mobile
