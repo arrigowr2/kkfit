@@ -282,7 +282,7 @@ export default function ActivityPageClient() {
             {showDatePicker && (
               <div
                 ref={datePickerRef}
-                className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-50 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[280px] max-w-[320px]"
+                className="absolute left-0 sm:left-auto right-0 sm:right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-50 w-[calc(100vw-1rem)] sm:w-auto sm:min-w-[280px] max-w-[320px] overflow-hidden"
               >
                 <input
                   type="date"
