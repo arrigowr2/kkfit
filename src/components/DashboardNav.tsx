@@ -4,6 +4,7 @@ import { signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { PWAInstallButton } from "@/components/ui/PWAInstallButton";
 
 interface User {
   name?: string | null;
@@ -75,6 +76,7 @@ export default function DashboardNav({ user }: DashboardNavProps) {
 
           {/* User menu */}
           <div className="flex items-center gap-3">
+            <PWAInstallButton />
             {user?.image ? (
               <div className="relative">
                 <Image

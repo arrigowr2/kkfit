@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { PWAProvider } from "@/components/providers/PWAProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,9 +16,27 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FitDashboard — Seu Painel de Saúde",
+  title: "KK Fit — Seu Painel de Saúde",
   description:
     "Conecte-se ao Google Fit e visualize suas estatísticas de saúde, gráficos e tendências personalizadas.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "KK Fit",
+  },
+  icons: {
+    icon: "/icons/icon.svg",
+    apple: "/icons/icon.svg",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0f172a",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -31,7 +50,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SessionProvider>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            <PWAProvider>{children}</PWAProvider>
+          </QueryProvider>
         </SessionProvider>
       </body>
     </html>
