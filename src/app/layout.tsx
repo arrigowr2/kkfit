@@ -22,13 +22,30 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "KK Fit",
+    startupImage: [
+      {
+        url: "/icons/icon-192x192.png",
+        media: "(device-width: 768px) and (device-height: 1024px)",
+      },
+    ],
   },
   icons: {
-    icon: "/icons/icon.svg",
-    apple: "/icons/icon.svg",
+    icon: [
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/icon-192x192.png", sizes: "192x192" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512" },
+    ],
   },
+  applicationName: "KK Fit",
+  authors: [{ name: "KK Fit" }],
+  keywords: ["saúde", "fitness", "google fit", "exercício", "bem-estar"],
+  category: "health",
 };
 
 export const viewport: Viewport = {
@@ -37,6 +54,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
