@@ -56,6 +56,8 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix Service Worker syntax error: fixed extra closing parenthesis in sw.js fetch handler
 - [x] Add slide-out navigation menu for mobile with profile access
 - [x] Add clickable user avatar/name to navigate to Profile page (desktop and mobile)
+- [x] Remove PWA install button from navigation (no longer needed)
+- [x] Fix Activity page calendar overflow on mobile: adjust width calculation to prevent overflow
 
 ## Current Structure
 
