@@ -43,6 +43,8 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix Activity tab 'Hoje' button: now properly passes specific date to API
 - [x] Add better UX for sleep data: suggest re-authentication if no data found
 - [x] Add enhanced debug logging for sleep data API calls
+- [x] Fix Sleep Sessions API error: changed from milliseconds to ISO 8601 format
+- [x] Fix Activity page 'Hoje' button: now fetches specific date instead of keyword "today"
 
 ## Current Structure
 
@@ -142,3 +144,5 @@ export async function GET() {
 | 2026-03-05 | Fix Activity tab 'Hoje' button: now properly passes specific date to API
 | 2026-03-05 | Add better UX for sleep data: suggest re-authentication if no data found
 | 2026-03-05 | Add enhanced debug logging for sleep data API calls
+| 2026-03-05 | Fix Sleep Sessions API error: changed from milliseconds to ISO 8601 format
+| 2026-03-05 | Fix Activity page 'Hoje' button: now fetches specific date instead of keyword "today"
