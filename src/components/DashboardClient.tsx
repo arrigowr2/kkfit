@@ -8,7 +8,6 @@ import HeartRateChart from "@/components/charts/HeartRateChart";
 import CaloriesChart from "@/components/charts/CaloriesChart";
 import SleepChart from "@/components/charts/SleepChart";
 import WeightChart from "@/components/charts/WeightChart";
-import { useFitnessSummary, useActivityData } from "@/lib/hooks/useFitnessData";
 import { DashboardSkeleton } from "@/components/ui/SkeletonLoaders";
 import { exportToCSV, exportToJSON, generateFitnessDataset } from "@/lib/export";
 import { getGoals, saveGoals, calculateProgress, getProgressColor, getProgressText, UserGoals, DEFAULT_GOALS, checkGoalAchievements } from "@/lib/goals";
@@ -18,6 +17,16 @@ interface TodaySummary {
   calories: number;
   activeMinutes: number;
   distance: number;
+}
+
+interface FitnessData {
+  today: TodaySummary | null;
+  steps: { date: string; steps: number }[];
+  calories: { date: string; calories: number }[];
+  heartRate: { date: string; avg: number; min: number; max: number }[];
+  weight: { date: string; weight: number }[];
+  sleep: { date: string; duration: number; quality: string }[];
+  activity: { date: string; activeMinutes: number; distance: number }[];
 }
 
 function StatCard({
@@ -202,27 +211,53 @@ export default function DashboardClient() {
   const [showGoalsModal, setShowGoalsModal] = useState(false);
   const [goals, setGoals] = useState<UserGoals>(DEFAULT_GOALS);
   const [notification, setNotification] = useState<string | null>(null);
+  
+  // Data state (using fetch directly like ActivityPage)
+  const [data, setData] = useState<FitnessData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   // Load goals from localStorage
   useEffect(() => {
     setGoals(getGoals());
   }, []);
 
-  // Get API mode based on selection
-  const apiMode = selectedMode === "custom" && customDates.length > 0 
-    ? "custom" 
-    : selectedMode;
+  // Fetch data function (similar to ActivityPageClient)
+  const fetchData = useCallback(async (mode: string, dates?: string[]) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      let url: string;
+      if (mode === "total") {
+        url = "/api/fitness/summary?date=total";
+      } else if (mode === "today") {
+        url = "/api/fitness/summary?date=today";
+      } else if (mode === "yesterday") {
+        url = "/api/fitness/summary?date=yesterday";
+      } else if (mode === "custom" && dates && dates.length > 0) {
+        url = `/api/fitness/summary?date=today&mode=multiple&dates=${dates.join(",")}`;
+      } else {
+        url = "/api/fitness/summary?date=total";
+      }
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  // Use React Query for data fetching with automatic caching and retry
-  const { data, isLoading, error, refetch } = useFitnessSummary(
-    apiMode,
-    selectedMode === "custom" ? customDates : undefined
-  );
-
-  const { data: activityData } = useActivityData(
-    apiMode,
-    selectedMode === "custom" ? customDates : undefined
-  );
+  // Initial fetch
+  useEffect(() => {
+    fetchData("total");
+  }, [fetchData]);
 
   // Check for goal achievements when data loads
   useEffect(() => {
@@ -262,10 +297,10 @@ export default function DashboardClient() {
     } else {
       setCustomDates([]);
       setPendingDates([]);
+      // Fetch data immediately for non-custom modes
+      fetchData(mode);
     }
-    // Force refetch when mode changes to ensure fresh data
-    setTimeout(() => refetch(), 0);
-  }, [refetch]);
+  }, [fetchData]);
 
   const getLocalDateStr = useCallback((date: Date = new Date()): string => {
     const year = date.getFullYear();
@@ -291,36 +326,62 @@ export default function DashboardClient() {
       setCustomDates(pendingDates);
       setSelectedMode("custom");
       setShowDatePicker(false);
+      // Fetch data for custom dates
+      fetchData("custom", pendingDates);
     } else {
       setShowDatePicker(false);
     }
-  }, [pendingDates]);
+  }, [pendingDates, fetchData]);
 
   const handleExportCSV = useCallback(() => {
-    if (!data || !activityData) return;
+    if (!data) return;
+    // Map activity data to include steps and calories from separate arrays
+    const activityData = (data.activity || []).map((a) => {
+      const stepsEntry = data.steps?.find(s => s.date === a.date);
+      const caloriesEntry = data.calories?.find(c => c.date === a.date);
+      return {
+        date: a.date,
+        steps: stepsEntry?.steps || 0,
+        calories: caloriesEntry?.calories || 0,
+        distance: a.distance,
+        activeMinutes: a.activeMinutes,
+      };
+    });
     const dataset = generateFitnessDataset(
       (data.steps || []).map((s: {date: string; steps: number}) => ({ date: s.date, value: s.steps })),
       (data.calories || []).map((c: {date: string; calories: number}) => ({ date: c.date, value: c.calories })),
       data.heartRate || [],
       (data.weight || []).map((w: {date: string; weight: number}) => ({ date: w.date, value: w.weight })),
       (data.sleep || []).map((s: {date: string; duration: number}) => ({ date: s.date, hours: Math.floor(s.duration / 60), minutes: s.duration % 60 })),
-      activityData || []
+      activityData
     );
     exportToCSV(dataset, "fitness_data");
-  }, [data, activityData]);
+  }, [data]);
 
   const handleExportJSON = useCallback(() => {
-    if (!data || !activityData) return;
+    if (!data) return;
+    // Map activity data to include steps and calories from separate arrays
+    const activityData = (data.activity || []).map((a) => {
+      const stepsEntry = data.steps?.find(s => s.date === a.date);
+      const caloriesEntry = data.calories?.find(c => c.date === a.date);
+      return {
+        date: a.date,
+        steps: stepsEntry?.steps || 0,
+        calories: caloriesEntry?.calories || 0,
+        distance: a.distance,
+        activeMinutes: a.activeMinutes,
+      };
+    });
     const dataset = generateFitnessDataset(
       (data.steps || []).map((s: {date: string; steps: number}) => ({ date: s.date, value: s.steps })),
       (data.calories || []).map((c: {date: string; calories: number}) => ({ date: c.date, value: c.calories })),
       data.heartRate || [],
       (data.weight || []).map((w: {date: string; weight: number}) => ({ date: w.date, value: w.weight })),
       (data.sleep || []).map((s: {date: string; duration: number}) => ({ date: s.date, hours: Math.floor(s.duration / 60), minutes: s.duration % 60 })),
-      activityData || []
+      activityData
     );
     exportToJSON(dataset, "fitness_data");
-  }, [data, activityData]);
+  }, [data]);
 
   const handleSaveGoals = useCallback((newGoals: UserGoals) => {
     setGoals(newGoals);
@@ -367,7 +428,7 @@ export default function DashboardClient() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => refetch()}
+            onClick={() => fetchData(selectedMode, customDates.length > 0 ? customDates : undefined)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
             Tentar novamente
