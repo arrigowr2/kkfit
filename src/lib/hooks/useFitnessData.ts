@@ -50,7 +50,12 @@ export function useFitnessSummary(mode: string, dates?: string[]) {
   return useQuery<FitnessSummary>({
     queryKey: ["fitness", "summary", mode, dates],
     queryFn: async () => {
-      let url = `/api/fitness/summary?date=${mode}`;
+      // For custom mode with dates, use 'today' as the base date parameter
+      // The actual dates will be passed in the dates parameter
+      const dateParam = mode === "custom" && dates && dates.length > 0 
+        ? "today" 
+        : mode;
+      let url = `/api/fitness/summary?date=${dateParam}`;
       if (dates && dates.length > 0) {
         url += `&mode=multiple&dates=${dates.join(",")}`;
       }
@@ -65,7 +70,11 @@ export function useActivityData(mode: string, dates?: string[]) {
   return useQuery<ActivityData[]>({
     queryKey: ["fitness", "activity", mode, dates],
     queryFn: async () => {
-      let url = `/api/fitness/steps?date=${mode}`;
+      // For custom mode with dates, use 'today' as the base date parameter
+      const dateParam = mode === "custom" && dates && dates.length > 0 
+        ? "today" 
+        : mode;
+      let url = `/api/fitness/steps?date=${dateParam}`;
       if (dates && dates.length > 0) {
         url += `&mode=multiple&dates=${dates.join(",")}`;
       }

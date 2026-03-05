@@ -96,16 +96,6 @@ export async function getStepsData(
     startTime.setDate(startTime.getDate() - days);
   }
 
-  console.log("[getStepsData] Requesting data:", {
-    specificDate,
-    days,
-    startTime: startTime.toISOString(),
-    endTime: endTime.toISOString(),
-    startDateLocal: `${startTime.getFullYear()}-${String(startTime.getMonth() + 1).padStart(2, '0')}-${String(startTime.getDate()).padStart(2, '0')}`,
-    endDateLocal: `${endTime.getFullYear()}-${String(endTime.getMonth() + 1).padStart(2, '0')}-${String(endTime.getDate()).padStart(2, '0')}`,
-    serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-  });
-
   const body = {
     aggregateBy: [
       {
@@ -121,12 +111,6 @@ export async function getStepsData(
 
   const data = await fetchFitData(accessToken, "/dataset:aggregate", body);
 
-  console.log("[getStepsData] Google Fit returned buckets:", data.bucket?.length || 0);
-  if (data.bucket?.length > 0) {
-    console.log("[getStepsData] First bucket startTimeMillis:", data.bucket[0].startTimeMillis, "->", new Date(parseInt(data.bucket[0].startTimeMillis)).toISOString());
-    console.log("[getStepsData] Last bucket startTimeMillis:", data.bucket[data.bucket.length-1].startTimeMillis, "->", new Date(parseInt(data.bucket[data.bucket.length-1].startTimeMillis)).toISOString());
-  }
-
   const result: DailySteps[] = [];
   if (data.bucket) {
     for (const bucket of data.bucket) {
@@ -137,9 +121,7 @@ export async function getStepsData(
         const year = d.getUTCFullYear();
         const month = String(d.getUTCMonth() + 1).padStart(2, '0');
         const day = String(d.getUTCDate()).padStart(2, '0');
-        const formatted = `${year}-${month}-${day}`;
-        console.log(`[getStepsData] Bucket ${bucket.startTimeMillis} -> UTC: ${formatted}, Local: ${d.toISOString()}`);
-        return formatted;
+        return `${year}-${month}-${day}`;
       })();
       let steps = 0;
       if (bucket.dataset?.[0]?.point?.length > 0) {
@@ -150,8 +132,6 @@ export async function getStepsData(
       result.push({ date, steps });
     }
   }
-
-  console.log("[getStepsData] Returning data:", result.slice(-5));
 
   return result.sort((a, b) => a.date.localeCompare(b.date));
 }

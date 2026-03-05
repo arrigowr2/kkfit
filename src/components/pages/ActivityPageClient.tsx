@@ -58,21 +58,13 @@ export default function ActivityPageClient() {
     } else {
       url = date ? `/api/fitness/summary?date=${date}` : "/api/fitness/summary?date=total";
     }
-    console.log("[ActivityPageClient] Fetching:", url);
     fetch(url)
       .then((r) => r.json())
       .then((d) => {
-        console.log("[ActivityPageClient] Received data:", {
-          targetDate: d?.targetDate,
-          today: d?.today,
-          stepsCount: d?.steps?.length,
-          stepsDates: d?.steps?.map((s: {date: string}) => s.date)
-        });
         setData(d);
         setLoading(false);
       })
-      .catch((e) => {
-        console.error("[ActivityPageClient] Fetch error:", e);
+      .catch(() => {
         setLoading(false);
       });
   };
@@ -89,19 +81,16 @@ export default function ActivityPageClient() {
   }, []);
 
   const handleQuickDate = (value: string, mode: "today" | "yesterday" | "custom" | "total") => {
-    console.log("[ActivityPageClient] handleQuickDate called:", { value, mode });
     setSelectedMode(mode);
     if (mode === "total") {
       setSelectedDate("");
       fetchData("", "total");
     } else if (mode === "today") {
       setSelectedDate("");
-      console.log("[ActivityPageClient] Fetching TODAY data");
       fetchData("", "today");
     } else if (mode === "yesterday") {
       setSelectedDate(value);
       setShowDatePicker(false);
-      console.log("[ActivityPageClient] Fetching YESTERDAY data, value:", value);
       fetchData(value, "yesterday");
     } else if (mode === "custom") {
       setShowDatePicker(true);
@@ -116,7 +105,6 @@ export default function ActivityPageClient() {
     
     const handleClickOutside = (event: MouseEvent) => {
       if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
-        console.log("[ActivityPageClient] Click outside detected, closing picker");
         setShowDatePicker(false);
       }
     };
@@ -133,47 +121,34 @@ export default function ActivityPageClient() {
   }, [showDatePicker]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("[ActivityPageClient] handleDateChange FIRED!");
-    console.log("[ActivityPageClient] Event target:", e.target);
-    console.log("[ActivityPageClient] Event target value:", e.target.value);
     const dateValue = e.target.value;
-    console.log("[ActivityPageClient] Date picker changed:", dateValue);
     if (dateValue) {
       // HTML date input already returns YYYY-MM-DD format in local time
       const dateStr = dateValue;
-      console.log("[ActivityPageClient] Processing date:", dateStr);
       // Add to pending dates (toggle)
       setPendingDates(prev => {
-        console.log("[ActivityPageClient] Current pending dates:", prev);
         const newDates = prev.includes(dateStr)
           ? prev.filter(d => d !== dateStr)
           : [...prev, dateStr].sort();
-        console.log("[ActivityPageClient] New pending dates:", newDates);
         return newDates;
       });
-    } else {
-      console.log("[ActivityPageClient] No date value received");
     }
   };
 
   const handleApplyDates = () => {
-    console.log("[ActivityPageClient] handleApplyDates called, pendingDates:", pendingDates);
     if (pendingDates.length > 0) {
       setSelectedDate(pendingDates.join(","));
       setSelectedMode("custom");
       setShowDatePicker(false);
       // Fetch data for the selected dates
       const dateParam = pendingDates.join(",");
-      console.log("[ActivityPageClient] Fetching multiple dates:", dateParam);
       fetch(`/api/fitness/summary?date=${dateParam}&mode=multiple`)
         .then((r) => r.json())
         .then((d) => {
-          console.log("[ActivityPageClient] Received multiple dates data:", d);
           setData(d);
           setLoading(false);
         })
-        .catch((e) => {
-          console.error("[ActivityPageClient] Error fetching multiple dates:", e);
+        .catch(() => {
           setLoading(false);
         });
     } else {
@@ -211,9 +186,6 @@ export default function ActivityPageClient() {
   // Get targetDate from API response for consistent filtering (server time)
   const apiTargetDate = data?.targetDate;
   
-  console.log("[ActivityPageClient] Display mode:", selectedMode, "apiTargetDate:", apiTargetDate);
-  console.log("[ActivityPageClient] stepsArr dates:", stepsArr.map(d => d.date));
-  
   if (selectedMode === "total") {
     displaySteps = stepsArr.slice(-7);
     displayCalories = caloriesArr.slice(-7);
@@ -221,7 +193,6 @@ export default function ActivityPageClient() {
   } else if (selectedMode === "today" || selectedMode === "yesterday") {
     // For today/yesterday: use the today object from API response
     // The API returns single-day data in the "today" object, not in arrays
-    console.log("[ActivityPageClient] Using today object for", selectedMode, ":", data?.today);
     if (data?.today) {
       // Create a single entry using the targetDate and today object values
       displaySteps = [{ date: apiTargetDate || "", steps: data.today.steps || 0 }];
@@ -236,7 +207,6 @@ export default function ActivityPageClient() {
       displayCalories = [];
       displayActivity = [];
     }
-    console.log("[ActivityPageClient] Single day data - steps:", displaySteps);
   } else {
     // For custom - show all data for the selected dates (API returns filtered data)
     displaySteps = stepsArr;
@@ -282,11 +252,7 @@ export default function ActivityPageClient() {
           {/* Custom date picker */}
           <div className="relative">
             <button
-              onClick={() => {
-                const newState = !showDatePicker;
-                console.log("[ActivityPageClient] Toggling date picker:", newState);
-                setShowDatePicker(newState);
-              }}
+              onClick={() => setShowDatePicker(!showDatePicker)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
                 selectedMode === "custom"
                   ? "bg-blue-500 text-white"
