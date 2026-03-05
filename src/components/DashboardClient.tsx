@@ -231,12 +231,14 @@ export default function DashboardClient() {
       let url: string;
       if (mode === "total") {
         url = "/api/fitness/summary?date=total";
-      } else if (mode === "today") {
-        url = "/api/fitness/summary?date=today";
-      } else if (mode === "yesterday") {
-        url = "/api/fitness/summary?date=yesterday";
+      } else if (mode === "today" && dates && dates.length > 0) {
+        // Pass actual date from client (correct timezone) instead of "today"
+        url = `/api/fitness/summary?date=${dates[0]}`;
+      } else if (mode === "yesterday" && dates && dates.length > 0) {
+        // Pass actual date from client (correct timezone) instead of "yesterday"
+        url = `/api/fitness/summary?date=${dates[0]}`;
       } else if (mode === "custom" && dates && dates.length > 0) {
-        url = `/api/fitness/summary?date=today&mode=multiple&dates=${dates.join(",")}`;
+        url = `/api/fitness/summary?date=${dates.join(",")}&mode=multiple`;
       } else {
         url = "/api/fitness/summary?date=total";
       }
@@ -299,6 +301,14 @@ export default function DashboardClient() {
     { label: "Ontem", value: "yesterday", mode: "yesterday" as const },
   ];
 
+  // Helper to get local date string in YYYY-MM-DD format (defined before use)
+  const getLocalDateStr = useCallback((date: Date = new Date()): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, []);
+
   const handleQuickDate = useCallback((mode: "today" | "yesterday" | "custom" | "total") => {
     setSelectedMode(mode);
     if (mode === "custom") {
@@ -306,17 +316,22 @@ export default function DashboardClient() {
     } else {
       setCustomDates([]);
       setPendingDates([]);
-      // Fetch data immediately for non-custom modes
-      fetchData(mode);
+      // For today/yesterday, pass the actual date string from client (correct timezone)
+      // instead of letting server calculate (server is UTC)
+      if (mode === "today") {
+        const todayStr = getLocalDateStr();
+        fetchData(mode, [todayStr]);
+      } else if (mode === "yesterday") {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = getLocalDateStr(yesterday);
+        fetchData(mode, [yesterdayStr]);
+      } else {
+        // Fetch data immediately for non-custom modes
+        fetchData(mode);
+      }
     }
-  }, [fetchData]);
-
-  const getLocalDateStr = useCallback((date: Date = new Date()): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }, []);
+  }, [fetchData, getLocalDateStr]);
 
   const handleDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const dateValue = e.target.value;
