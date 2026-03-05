@@ -263,7 +263,9 @@ export default function DashboardClient() {
       setCustomDates([]);
       setPendingDates([]);
     }
-  }, []);
+    // Force refetch when mode changes to ensure fresh data
+    setTimeout(() => refetch(), 0);
+  }, [refetch]);
 
   const getLocalDateStr = useCallback((date: Date = new Date()): string => {
     const year = date.getFullYear();
