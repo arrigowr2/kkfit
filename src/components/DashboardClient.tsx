@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import StepsChart from "@/components/charts/StepsChart";
@@ -8,22 +8,16 @@ import HeartRateChart from "@/components/charts/HeartRateChart";
 import CaloriesChart from "@/components/charts/CaloriesChart";
 import SleepChart from "@/components/charts/SleepChart";
 import WeightChart from "@/components/charts/WeightChart";
+import { useFitnessSummary, useActivityData } from "@/lib/hooks/useFitnessData";
+import { DashboardSkeleton } from "@/components/ui/SkeletonLoaders";
+import { exportToCSV, exportToJSON, generateFitnessDataset } from "@/lib/export";
+import { getGoals, saveGoals, calculateProgress, getProgressColor, getProgressText, UserGoals, DEFAULT_GOALS, checkGoalAchievements } from "@/lib/goals";
 
 interface TodaySummary {
   steps: number;
   calories: number;
   activeMinutes: number;
   distance: number;
-}
-
-interface FitnessData {
-  today: TodaySummary | null;
-  steps: { date: string; steps: number }[];
-  calories: { date: string; calories: number }[];
-  heartRate: { date: string; avg: number; min: number; max: number }[];
-  sleep: { date: string; duration: number; quality: string }[];
-  weight: { date: string; weight: number }[];
-  activity: { date: string; activeMinutes: number; distance: number }[];
 }
 
 function StatCard({
@@ -47,9 +41,7 @@ function StatCard({
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">
-            {label}
-          </p>
+          <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">{label}</p>
           <div className="flex items-baseline gap-1 mt-1">
             <span className={`text-2xl font-bold ${color}`}>{value}</span>
             <span className="text-slate-400 text-sm">{unit}</span>
@@ -61,13 +53,7 @@ function StatCard({
         <div>
           <div className="w-full bg-slate-800 rounded-full h-1.5 mt-2">
             <div
-              className={`h-1.5 rounded-full transition-all duration-500 ${
-                progress >= 100
-                  ? "bg-green-500"
-                  : progress >= 70
-                    ? "bg-blue-500"
-                    : "bg-slate-600"
-              }`}
+              className={`h-1.5 rounded-full transition-all duration-500 ${getProgressColor(progress)}`}
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
@@ -91,225 +77,262 @@ function ChartCard({
   children: React.ReactNode;
   isEmpty?: boolean;
 }) {
+  if (isEmpty) {
+    return (
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+        <div className="mb-4">
+          <h3 className="text-white font-semibold">{title}</h3>
+          {subtitle && <p className="text-slate-400 text-xs mt-0.5">{subtitle}</p>}
+        </div>
+        <div className="h-[200px] flex items-center justify-center">
+          <p className="text-slate-500 text-sm">Sem dados disponíveis</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
       <div className="mb-4">
         <h3 className="text-white font-semibold">{title}</h3>
         {subtitle && <p className="text-slate-400 text-xs mt-0.5">{subtitle}</p>}
       </div>
-      {isEmpty ? (
-        <div className="h-[200px] flex items-center justify-center">
-          <p className="text-slate-500 text-sm">Sem dados disponíveis</p>
-        </div>
-      ) : (
-        children
-      )}
+      {children}
     </div>
   );
 }
 
-function TrendBadge({ data, key: dataKey }: { data: number[]; key?: string }) {
-  if (data.length < 2) return null;
-  const recent = data.slice(-7);
-  const prev = data.slice(-14, -7);
-  if (prev.length === 0) return null;
+function Notification({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 5000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
 
-  const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
-  const prevAvg = prev.reduce((a, b) => a + b, 0) / prev.length;
-  const diff = ((recentAvg - prevAvg) / prevAvg) * 100;
-
-  if (Math.abs(diff) < 1) return null;
-
-  const isPositive = diff > 0;
   return (
-    <span
-      className={`text-xs px-2 py-0.5 rounded-full ${
-        isPositive
-          ? "bg-green-500/20 text-green-400"
-          : "bg-red-500/20 text-red-400"
-      }`}
-    >
-      {isPositive ? "↑" : "↓"} {Math.abs(diff).toFixed(1)}%
-    </span>
+    <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-3 rounded-xl shadow-lg z-50">
+      <div className="flex items-center gap-2">
+        <span className="text-xl">🎉</span>
+        <span className="font-medium">{message}</span>
+        <button onClick={onClose} className="ml-2 hover:text-green-200">×</button>
+      </div>
+    </div>
+  );
+}
+
+function GoalsModal({
+  isOpen,
+  onClose,
+  goals,
+  onSave,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  goals: UserGoals;
+  onSave: (goals: UserGoals) => void;
+}) {
+  const [localGoals, setLocalGoals] = useState(goals);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full">
+        <h3 className="text-xl font-bold text-white mb-4">🎯 Minhas Metas</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">Passos Diários</label>
+            <input
+              type="number"
+              value={localGoals.dailySteps}
+              onChange={(e) => setLocalGoals({ ...localGoals, dailySteps: parseInt(e.target.value) || 0 })}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">Calorias Diárias</label>
+            <input
+              type="number"
+              value={localGoals.dailyCalories}
+              onChange={(e) => setLocalGoals({ ...localGoals, dailyCalories: parseInt(e.target.value) || 0 })}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">Minutos Ativos Semanais</label>
+            <input
+              type="number"
+              value={localGoals.weeklyActiveMinutes}
+              onChange={(e) => setLocalGoals({ ...localGoals, weeklyActiveMinutes: parseInt(e.target.value) || 0 })}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">Horas de Sono</label>
+            <input
+              type="number"
+              value={localGoals.sleepHours}
+              onChange={(e) => setLocalGoals({ ...localGoals, sleepHours: parseInt(e.target.value) || 0 })}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+            />
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={() => { onSave(localGoals); onClose(); }}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 font-medium"
+          >
+            Salvar
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 bg-slate-700 hover:bg-slate-600 text-white rounded-lg py-2 font-medium"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
 export default function DashboardClient() {
-  const [data, setData] = useState<FitnessData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedMode, setSelectedMode] = useState<"today" | "yesterday" | "custom" | "total">("total");
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showAverages, setShowAverages] = useState(false);
   const [customDates, setCustomDates] = useState<string[]>([]);
   const [pendingDates, setPendingDates] = useState<string[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showGoalsModal, setShowGoalsModal] = useState(false);
+  const [goals, setGoals] = useState<UserGoals>(DEFAULT_GOALS);
+  const [notification, setNotification] = useState<string | null>(null);
 
-  // Quick date options
+  // Load goals from localStorage
+  useEffect(() => {
+    setGoals(getGoals());
+  }, []);
+
+  // Get API mode based on selection
+  const apiMode = selectedMode === "custom" && customDates.length > 0 
+    ? "custom" 
+    : selectedMode;
+
+  // Use React Query for data fetching with automatic caching and retry
+  const { data, isLoading, error, refetch } = useFitnessSummary(
+    apiMode,
+    selectedMode === "custom" ? customDates : undefined
+  );
+
+  const { data: activityData } = useActivityData(
+    apiMode,
+    selectedMode === "custom" ? customDates : undefined
+  );
+
+  // Check for goal achievements when data loads
+  useEffect(() => {
+    if (data?.today && selectedMode === "today") {
+      const achievements = checkGoalAchievements(
+        {
+          steps: data.today?.steps,
+          calories: data.today?.calories,
+        },
+        goals,
+        new Date().toISOString().split("T")[0]
+      );
+
+      if (achievements.length > 0) {
+        const achievement = achievements[0];
+        const messages: Record<string, string> = {
+          steps: `Meta de passos atingida! ${achievement.value} passos 🎉`,
+          calories: `Meta de calorias atingida! ${achievement.value} kcal 🔥`,
+          activeMinutes: `Meta de atividade atingida! ${achievement.value} min ⚡`,
+          sleep: `Meta de sono atingida! ${achievement.value}h 😴`,
+        };
+        setNotification(messages[achievement.type]);
+      }
+    }
+  }, [data, goals, selectedMode]);
+
   const quickDates = [
     { label: "Total", value: "total", mode: "total" as const },
     { label: "Hoje", value: "today", mode: "today" as const },
     { label: "Ontem", value: "yesterday", mode: "yesterday" as const },
   ];
 
-  const fetchData = (date: string, mode: string) => {
-    setLoading(true);
-    setError(null);
-    // If mode is 'total', send 'total' as param; if mode is 'today', send 'today'; otherwise send the date
-    let url: string;
-    if (mode === "total") {
-      url = "/api/fitness/summary?date=total";
-    } else if (mode === "today") {
-      url = "/api/fitness/summary?date=today";
-    } else if (mode === "yesterday") {
-      url = "/api/fitness/summary?date=yesterday";
-    } else if (mode === "multiple" && date) {
-      url = `/api/fitness/summary?date=${date}&mode=multiple`;
+  const handleQuickDate = useCallback((mode: "today" | "yesterday" | "custom" | "total") => {
+    setSelectedMode(mode);
+    if (mode === "custom") {
+      setShowDatePicker(true);
     } else {
-      url = date ? `/api/fitness/summary?date=${date}` : "/api/fitness/summary?date=total";
+      setCustomDates([]);
+      setPendingDates([]);
     }
-    fetch(url)
-      .then((res) => {
-        if (!res.ok) {
-          return res.json().then((body) => {
-            throw new Error(body?.error || "Falha ao carregar dados");
-          });
-        }
-        return res.json();
-      })
-      .then((d) => {
-        setData(d);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  };
-
-  // Initial data fetch - default to total mode
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    fetch("/api/fitness/summary?date=total")
-      .then((res) => {
-        if (!res.ok) {
-          return res.json().then((body) => {
-            throw new Error(body?.error || "Falha ao carregar dados");
-          });
-        }
-        return res.json();
-      })
-      .then((d) => {
-        setData(d);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
   }, []);
 
-  const handleQuickDate = (value: string, mode: "today" | "yesterday" | "custom" | "total") => {
-    console.log("[DashboardClient] handleQuickDate called:", { value, mode });
-    setSelectedMode(mode);
-    if (mode === "total") {
-      setSelectedDate("");
-      fetchData("", "total");
-    } else if (mode === "today") {
-      setSelectedDate("");
-      console.log("[DashboardClient] Fetching TODAY data");
-      fetchData("", "today");
-    } else if (mode === "yesterday") {
-      setSelectedDate(value);
-      setShowDatePicker(false);
-      console.log("[DashboardClient] Fetching YESTERDAY data, value:", value);
-      fetchData(value, "yesterday");
-    } else if (mode === "custom") {
-      console.log("[DashboardClient] Opening date picker (Personalizado)");
-      setShowDatePicker(true);
-    }
-  };
-
-  // Helper to get local date string in YYYY-MM-DD format
-  const getLocalDateStr = (date: Date = new Date()): string => {
+  const getLocalDateStr = useCallback((date: Date = new Date()): string => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
-  };
+  }, []);
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("[DashboardClient] handleDateChange FIRED!");
-    console.log("[DashboardClient] Event target:", e.target);
-    console.log("[DashboardClient] Event target value:", e.target.value);
+  const handleDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const dateValue = e.target.value;
-    console.log("[DashboardClient] Date picker changed:", dateValue);
     if (dateValue) {
-      // Convert to the format expected by API (local time, not UTC)
-      const dateStr = dateValue; // HTML date input already returns YYYY-MM-DD
-      console.log("[DashboardClient] Processing date:", dateStr);
-      // Add to pending dates (toggle)
-      setPendingDates(prev => {
-        console.log("[DashboardClient] Current pending dates:", prev);
-        const newDates = prev.includes(dateStr)
-          ? prev.filter(d => d !== dateStr)
-          : [...prev, dateStr].sort();
-        console.log("[DashboardClient] New pending dates:", newDates);
+      setPendingDates((prev) => {
+        const newDates = prev.includes(dateValue)
+          ? prev.filter((d) => d !== dateValue)
+          : [...prev, dateValue].sort();
         return newDates;
       });
-    } else {
-      console.log("[DashboardClient] No date value received");
     }
-  };
+  }, []);
 
-  const handleApplyDates = () => {
-    console.log("[DashboardClient] handleApplyDates called, pendingDates:", pendingDates);
+  const handleApplyDates = useCallback(() => {
     if (pendingDates.length > 0) {
       setCustomDates(pendingDates);
       setSelectedMode("custom");
       setShowDatePicker(false);
-      // Fetch data for the selected dates
-      const dateParam = pendingDates.join(",");
-      console.log("[DashboardClient] Fetching multiple dates:", dateParam);
-      fetch(`/api/fitness/summary?date=${dateParam}&mode=multiple`)
-        .then((res) => {
-          if (!res.ok) {
-            return res.json().then((body) => {
-              throw new Error(body?.error || "Falha ao carregar dados");
-            });
-          }
-          return res.json();
-        })
-        .then((d) => {
-          console.log("[DashboardClient] API Response received:", d);
-          console.log("[DashboardClient] Steps data:", d.steps);
-          console.log("[DashboardClient] Steps dates:", d.steps?.map((s: {date: string}) => s.date));
-          console.log("[DashboardClient] Today data:", d.today);
-          setData(d);
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError(err.message);
-          setLoading(false);
-        });
     } else {
       setShowDatePicker(false);
     }
-  };
+  }, [pendingDates]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-        <p className="text-slate-400">Carregando seus dados de saúde...</p>
-      </div>
+  const handleExportCSV = useCallback(() => {
+    if (!data || !activityData) return;
+    const dataset = generateFitnessDataset(
+      (data.steps || []).map((s: {date: string; steps: number}) => ({ date: s.date, value: s.steps })),
+      (data.calories || []).map((c: {date: string; calories: number}) => ({ date: c.date, value: c.calories })),
+      data.heartRate || [],
+      (data.weight || []).map((w: {date: string; weight: number}) => ({ date: w.date, value: w.weight })),
+      (data.sleep || []).map((s: {date: string; duration: number}) => ({ date: s.date, hours: Math.floor(s.duration / 60), minutes: s.duration % 60 })),
+      activityData || []
     );
+    exportToCSV(dataset, "fitness_data");
+  }, [data, activityData]);
+
+  const handleExportJSON = useCallback(() => {
+    if (!data || !activityData) return;
+    const dataset = generateFitnessDataset(
+      (data.steps || []).map((s: {date: string; steps: number}) => ({ date: s.date, value: s.steps })),
+      (data.calories || []).map((c: {date: string; calories: number}) => ({ date: c.date, value: c.calories })),
+      data.heartRate || [],
+      (data.weight || []).map((w: {date: string; weight: number}) => ({ date: w.date, value: w.weight })),
+      (data.sleep || []).map((s: {date: string; duration: number}) => ({ date: s.date, hours: Math.floor(s.duration / 60), minutes: s.duration % 60 })),
+      activityData || []
+    );
+    exportToJSON(dataset, "fitness_data");
+  }, [data, activityData]);
+
+  const handleSaveGoals = useCallback((newGoals: UserGoals) => {
+    setGoals(newGoals);
+    saveGoals(newGoals);
+  }, []);
+
+  if (isLoading) {
+    return <DashboardSkeleton />;
   }
 
   if (error) {
-    const isFitnessApiError = error.includes("403") || error.includes("fitness") || error.includes("Fitness");
-    const isUnauthorized = error.includes("401") || error.includes("Unauthorized");
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isFitnessApiError = errorMessage.includes("403") || errorMessage.includes("fitness");
+    const isUnauthorized = errorMessage.includes("401") || errorMessage.includes("Unauthorized");
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4">
@@ -317,7 +340,7 @@ export default function DashboardClient() {
         <p className="text-red-400 font-medium text-center">Erro ao carregar dados do Google Fit</p>
         <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 max-w-lg w-full space-y-3">
           <p className="text-slate-300 text-sm font-medium">Detalhes do erro:</p>
-          <p className="text-red-300 text-xs font-mono bg-slate-800 rounded p-2 break-all">{error}</p>
+          <p className="text-red-300 text-xs font-mono bg-slate-800 rounded p-2 break-all">{errorMessage}</p>
 
           {isFitnessApiError && (
             <div className="text-slate-400 text-sm space-y-1">
@@ -325,7 +348,7 @@ export default function DashboardClient() {
               <p>A <strong className="text-white">Fitness API</strong> pode não estar ativada no Google Cloud Console.</p>
               <ol className="list-decimal list-inside space-y-1 text-xs mt-2">
                 <li>Acesse <span className="text-blue-400">console.cloud.google.com</span></li>
-                <li>Vá em <strong className="text-white">APIs &amp; Services → Library</strong></li>
+                <li>Vá em <strong className="text-white">APIs & Services → Library</strong></li>
                 <li>Busque por <strong className="text-white">&quot;Fitness API&quot;</strong></li>
                 <li>Clique em <strong className="text-white">Enable</strong></li>
                 <li>Faça logout e login novamente para renovar as permissões</li>
@@ -339,53 +362,27 @@ export default function DashboardClient() {
               <p>Sua sessão expirou. Faça logout e login novamente.</p>
             </div>
           )}
-
-          {!isFitnessApiError && !isUnauthorized && (
-            <div className="text-slate-400 text-sm space-y-1">
-              <p className="font-medium text-yellow-400">🔧 Possíveis soluções:</p>
-              <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>Verifique se a <strong className="text-white">Fitness API</strong> está ativada no Google Cloud Console</li>
-                <li>Verifique se você concedeu todas as permissões ao fazer login</li>
-                <li>Faça logout e login novamente</li>
-              </ul>
-            </div>
-          )}
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => {
-              console.log("[DashboardClient] Retry button clicked");
-              window.location.reload();
-            }}
+            onClick={() => refetch()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
             Tentar novamente
           </button>
           <button
-            onClick={() => {
-              console.log("[DashboardClient] Logout button clicked, calling signOut");
-              signOut({ callbackUrl: `${window.location.origin}/` }).catch((err) => {
-                console.error("[DashboardClient] signOut error:", err);
-                window.location.href = "/api/auth/signout";
-              });
-            }}
+            onClick={() => signOut({ callbackUrl: `${window.location.origin}/` })}
             className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors text-sm"
           >
             Fazer logout
           </button>
         </div>
         <div className="flex gap-3 mt-1">
-          <Link
-            href="/signout"
-            className="text-xs text-slate-500 hover:text-slate-300 underline"
-          >
+          <Link href="/signout" className="text-xs text-slate-500 hover:text-slate-300 underline">
             Forçar logout
           </Link>
           <span className="text-slate-700 text-xs">·</span>
-          <Link
-            href="/"
-            className="text-xs text-slate-500 hover:text-slate-300 underline"
-          >
+          <Link href="/" className="text-xs text-slate-500 hover:text-slate-300 underline">
             Ir para a página inicial
           </Link>
         </div>
@@ -393,60 +390,82 @@ export default function DashboardClient() {
     );
   }
 
-  const today = data?.today;
-  const stepsGoal = 10000;
-  const caloriesGoal = 2000;
-  const activeMinutesGoal = 30;
-
-  // Check if today's data exists
+  const today: TodaySummary | null = data?.today || null;
   const hasStepsData = today && today.steps > 0;
   const hasCaloriesData = today && today.calories > 0;
   const hasActiveMinutesData = today && today.activeMinutes > 0;
   const hasDistanceData = today && (today.distance || 0) > 0;
 
-  // Calculate averages only if there's data
-  const avgSteps =
-    data?.steps && data.steps.length > 0
-      ? Math.round(
-          data.steps.reduce((a, b) => a + b.steps, 0) / data.steps.length
-        )
-      : 0;
+  // Calculate averages
+  const avgSteps = data?.steps && data.steps.length > 0
+    ? Math.round(data.steps.reduce((a: number, b: {steps: number}) => a + b.steps, 0) / data.steps.length)
+    : 0;
 
-  const avgSleep =
-    data?.sleep && data.sleep.length > 0
-      ? Math.round(
-          data.sleep.reduce((a, b) => a + b.duration, 0) / data.sleep.length
-        )
-      : 0;
+  const avgSleep = data?.sleep && data.sleep.length > 0
+    ? Math.round(data.sleep.reduce((a: number, b: {duration: number}) => a + b.duration, 0) / data.sleep.length)
+    : 0;
 
-  const latestWeight =
-    data?.weight && data.weight.length > 0
-      ? data.weight[data.weight.length - 1].weight
-      : null;
-
-  const latestHeartRate =
-    data?.heartRate && data.heartRate.length > 0
-      ? data.heartRate[data.heartRate.length - 1].avg
-      : null;
-
-  // Show/hide averages section
-  const hasAveragesData = avgSteps > 0 || avgSleep > 0 || latestWeight !== null || latestHeartRate !== null;
+  const latestWeight = data?.weight && data.weight.length > 0 ? data.weight[data.weight.length - 1].weight : null;
+  const latestHeartRate = data?.heartRate && data.heartRate.length > 0 ? data.heartRate[data.heartRate.length - 1].avg : null;
 
   return (
     <div className="space-y-6">
-      {/* Header with Date Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Notification */}
+      {notification && (
+        <Notification message={notification} onClose={() => setNotification(null)} />
+      )}
+
+      {/* Goals Modal */}
+      <GoalsModal
+        isOpen={showGoalsModal}
+        onClose={() => setShowGoalsModal(false)}
+        goals={goals}
+        onSave={handleSaveGoals}
+      />
+
+      {/* Header with Date Selector and Actions */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Visão Geral</h1>
         </div>
         
-        {/* Date Selector */}
-        <div className="flex items-center gap-2">
-          {/* Quick date buttons */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Export buttons */}
+          <button
+            onClick={handleExportCSV}
+            disabled={!data}
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800/50 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            CSV
+          </button>
+          <button
+            onClick={handleExportJSON}
+            disabled={!data}
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800/50 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            JSON
+          </button>
+          <button
+            onClick={() => setShowGoalsModal(true)}
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Metas
+          </button>
+          
+          {/* Date buttons */}
           {quickDates.map((q) => (
             <button
               key={q.mode}
-              onClick={() => handleQuickDate(q.value, q.mode)}
+              onClick={() => handleQuickDate(q.mode)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 selectedMode === q.mode
                   ? "bg-blue-500 text-white"
@@ -470,8 +489,8 @@ export default function DashboardClient() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              {selectedMode === "custom" && selectedDate 
-                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR")
+              {selectedMode === "custom" && customDates.length > 0 
+                ? `${customDates.length} dia(s)`
                 : "Personalizado"}
             </button>
             
@@ -484,16 +503,15 @@ export default function DashboardClient() {
                   className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 focus:outline-none w-full"
                 />
                 
-                {/* Selected dates display */}
                 {pendingDates.length > 0 && (
                   <div className="mt-3 space-y-1">
                     <p className="text-xs text-slate-400">Datas selecionadas:</p>
                     <div className="flex flex-wrap gap-1">
-                      {pendingDates.map(date => (
+                      {pendingDates.map((date) => (
                         <span key={date} className="inline-flex items-center gap-1 bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded">
                           {new Date(date + "T00:00:00").toLocaleDateString("pt-BR")}
                           <button
-                            onClick={() => setPendingDates(prev => prev.filter(d => d !== date))}
+                            onClick={() => setPendingDates((prev) => prev.filter((d) => d !== date))}
                             className="hover:text-white"
                           >
                             ×
@@ -509,10 +527,9 @@ export default function DashboardClient() {
                 {pendingDates.length > 0 && (
                   <button
                     onClick={handleApplyDates}
-                    disabled={loading}
-                    className="mt-3 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                    className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                   >
-                    {loading ? "Carregando..." : `Ver ${pendingDates.length} dia(s)`}
+                    Ver {pendingDates.length} dia(s)
                   </button>
                 )}
               </div>
@@ -521,12 +538,10 @@ export default function DashboardClient() {
         </div>
       </div>
 
-      {/* Today's summary - only show if there's data */}
+      {/* Today's Summary */}
       {today && (hasStepsData || hasCaloriesData || hasActiveMinutesData || hasDistanceData) && (
         <div>
-          <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-3">
-            Hoje
-          </h2>
+          <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-3">Hoje</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {hasStepsData && (
               <StatCard
@@ -535,8 +550,8 @@ export default function DashboardClient() {
                 value={(today?.steps || 0).toLocaleString("pt-BR")}
                 unit="passos"
                 color="text-blue-400"
-                progress={today ? (today.steps / stepsGoal) * 100 : 0}
-                goal={`${stepsGoal.toLocaleString("pt-BR")}`}
+                progress={calculateProgress(today.steps, goals.dailySteps)}
+                goal={`${goals.dailySteps.toLocaleString("pt-BR")}`}
               />
             )}
             {hasCaloriesData && (
@@ -546,8 +561,8 @@ export default function DashboardClient() {
                 value={(today?.calories || 0).toLocaleString("pt-BR")}
                 unit="kcal"
                 color="text-orange-400"
-                progress={today ? (today.calories / caloriesGoal) * 100 : 0}
-                goal={`${caloriesGoal.toLocaleString("pt-BR")} kcal`}
+                progress={calculateProgress(today.calories, goals.dailyCalories)}
+                goal={`${goals.dailyCalories.toLocaleString("pt-BR")} kcal`}
               />
             )}
             {hasActiveMinutesData && (
@@ -557,83 +572,26 @@ export default function DashboardClient() {
                 value={today?.activeMinutes || 0}
                 unit="min"
                 color="text-yellow-400"
-                progress={
-                  today ? (today.activeMinutes / activeMinutesGoal) * 100 : 0
-                }
-                goal={`${activeMinutesGoal} min`}
+                progress={calculateProgress(today.activeMinutes, Math.round(goals.weeklyActiveMinutes / 7))}
+                goal={`${Math.round(goals.weeklyActiveMinutes / 7)} min`}
               />
             )}
             {hasDistanceData && (
               <StatCard
                 icon="📍"
                 label="Distância"
-                value={
-                  today ? ((today.distance || 0) / 1000).toFixed(2) : "0.00"
-                }
+                value={today ? ((today.distance || 0) / 1000).toFixed(2) : "0.00"}
                 unit="km"
                 color="text-cyan-400"
               />
             )}
           </div>
-        </div>
-      )}
-
-      {/* 30-day averages - collapsible, only show if there's data */}
-      {hasAveragesData && (
-        <div>
-          <button
-            onClick={() => setShowAverages(!showAverages)}
-            className="flex items-center gap-2 text-sm font-medium text-slate-400 uppercase tracking-wide mb-3 hover:text-white transition-colors"
-          >
-            <svg
-              className={`w-4 h-4 transition-transform ${showAverages ? "rotate-90" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            Médias (30 dias)
-          </button>
-          {showAverages && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {avgSteps > 0 && (
-                <StatCard
-                  icon="📊"
-                  label="Média de Passos"
-                  value={avgSteps.toLocaleString("pt-BR")}
-                  unit="passos/dia"
-                  color="text-blue-400"
-                />
-              )}
-              {avgSleep > 0 && (
-                <StatCard
-                  icon="😴"
-                  label="Média de Sono"
-                  value={`${Math.floor(avgSleep / 60)}h ${avgSleep % 60}min`}
-                  unit=""
-                  color="text-purple-400"
-                />
-              )}
-              {latestWeight !== null && (
-                <StatCard
-                  icon="⚖️"
-                  label="Peso Atual"
-                  value={latestWeight.toFixed(1)}
-                  unit="kg"
-                  color="text-emerald-400"
-                />
-              )}
-              {latestHeartRate !== null && (
-                <StatCard
-                  icon="❤️"
-                  label="Freq. Cardíaca"
-                  value={latestHeartRate}
-                  unit="bpm"
-                  color="text-red-400"
-                />
-              )}
-            </div>
+          
+          {/* Progress message */}
+          {today && (today.steps > 0 || today.calories > 0) && (
+            <p className="text-sm text-slate-400 mt-2">
+              {getProgressText(calculateProgress(today.steps, goals.dailySteps))}
+            </p>
           )}
         </div>
       )}
@@ -642,7 +600,7 @@ export default function DashboardClient() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard
           title="Passos Diários"
-          subtitle="Últimos 14 dias"
+          subtitle={selectedMode === "custom" ? `${customDates.length} dias selecionados` : "Últimos 14 dias"}
           isEmpty={!data?.steps || data.steps.length === 0}
         >
           <StepsChart data={data?.steps || []} />
@@ -650,7 +608,7 @@ export default function DashboardClient() {
 
         <ChartCard
           title="Calorias Queimadas"
-          subtitle="Últimos 14 dias"
+          subtitle={selectedMode === "custom" ? `${customDates.length} dias selecionados` : "Últimos 14 dias"}
           isEmpty={!data?.calories || data.calories.length === 0}
         >
           <CaloriesChart data={data?.calories || []} />
@@ -666,7 +624,7 @@ export default function DashboardClient() {
 
         <ChartCard
           title="Qualidade do Sono"
-          subtitle="Duração por noite (meta: 7h)"
+          subtitle={`Meta: ${goals.sleepHours}h`}
           isEmpty={!data?.sleep || data.sleep.length === 0}
         >
           <SleepChart data={data?.sleep || []} />
@@ -681,121 +639,64 @@ export default function DashboardClient() {
             <WeightChart data={data.weight} />
           </ChartCard>
         )}
-
-        {/* Activity summary */}
-        {data?.activity && data.activity.length > 0 && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <h3 className="text-white font-semibold mb-1">
-              Resumo de Atividade
-            </h3>
-            <p className="text-slate-400 text-xs mb-4">
-              Últimos 30 dias
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-800/50 rounded-xl p-4">
-                <p className="text-slate-400 text-xs mb-1">Total de Passos</p>
-                <p className="text-2xl font-bold text-blue-400">
-                  {data.steps
-                    .reduce((a, b) => a + b.steps, 0)
-                    .toLocaleString("pt-BR")}
-                </p>
-              </div>
-              <div className="bg-slate-800/50 rounded-xl p-4">
-                <p className="text-slate-400 text-xs mb-1">Distância Total</p>
-                <p className="text-2xl font-bold text-cyan-400">
-                  {(
-                    data.activity.reduce((a, b) => a + b.distance, 0) / 1000
-                  ).toFixed(1)}{" "}
-                  <span className="text-sm font-normal text-slate-400">km</span>
-                </p>
-              </div>
-              <div className="bg-slate-800/50 rounded-xl p-4">
-                <p className="text-slate-400 text-xs mb-1">Min. Ativos Total</p>
-                <p className="text-2xl font-bold text-yellow-400">
-                  {data.activity
-                    .reduce((a, b) => a + b.activeMinutes, 0)
-                    .toLocaleString("pt-BR")}
-                </p>
-              </div>
-              <div className="bg-slate-800/50 rounded-xl p-4">
-                <p className="text-slate-400 text-xs mb-1">Dias com Meta</p>
-                <p className="text-2xl font-bold text-green-400">
-                  {data.steps.filter((d) => d.steps >= 10000).length}
-                  <span className="text-sm font-normal text-slate-400">
-                    {" "}
-                    / {data.steps.length}
-                  </span>
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Health insights */}
+      {/* Health Insights */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
         <h3 className="text-white font-semibold mb-4">💡 Insights de Saúde</h3>
         <div className="space-y-3">
           {avgSteps > 0 && (
-            <div
-              className={`flex items-start gap-3 p-3 rounded-xl ${
-                avgSteps >= 10000
-                  ? "bg-green-500/10 border border-green-500/20"
-                  : avgSteps >= 7500
-                    ? "bg-yellow-500/10 border border-yellow-500/20"
-                    : "bg-red-500/10 border border-red-500/20"
-              }`}
-            >
+            <div className={`flex items-start gap-3 p-3 rounded-xl ${
+              avgSteps >= goals.dailySteps
+                ? "bg-green-500/10 border border-green-500/20"
+                : avgSteps >= goals.dailySteps * 0.75
+                  ? "bg-yellow-500/10 border border-yellow-500/20"
+                  : "bg-red-500/10 border border-red-500/20"
+            }`}>
               <span className="text-lg">👟</span>
               <div>
-                <p
-                  className={`text-sm font-medium ${
-                    avgSteps >= 10000
-                      ? "text-green-400"
-                      : avgSteps >= 7500
-                        ? "text-yellow-400"
-                        : "text-red-400"
-                  }`}
-                >
-                  {avgSteps >= 10000
+                <p className={`text-sm font-medium ${
+                  avgSteps >= goals.dailySteps
+                    ? "text-green-400"
+                    : avgSteps >= goals.dailySteps * 0.75
+                      ? "text-yellow-400"
+                      : "text-red-400"
+                }`}>
+                  {avgSteps >= goals.dailySteps
                     ? "Excelente! Você está atingindo sua meta de passos."
-                    : avgSteps >= 7500
-                      ? "Bom progresso! Você está perto da meta de 10.000 passos."
-                      : "Tente aumentar sua caminhada diária para atingir 10.000 passos."}
+                    : avgSteps >= goals.dailySteps * 0.75
+                      ? "Bom progresso! Você está perto da meta."
+                      : "Tente aumentar sua caminhada diária para atingir sua meta."}
                 </p>
                 <p className="text-slate-500 text-xs mt-0.5">
-                  Média: {avgSteps.toLocaleString("pt-BR")} passos/dia
+                  Média: {avgSteps.toLocaleString("pt-BR")} passos/dia (Meta: {goals.dailySteps.toLocaleString("pt-BR")})
                 </p>
               </div>
             </div>
           )}
 
           {avgSleep > 0 && (
-            <div
-              className={`flex items-start gap-3 p-3 rounded-xl ${
-                avgSleep >= 420
-                  ? "bg-green-500/10 border border-green-500/20"
-                  : avgSleep >= 360
-                    ? "bg-yellow-500/10 border border-yellow-500/20"
-                    : "bg-red-500/10 border border-red-500/20"
-              }`}
-            >
+            <div className={`flex items-start gap-3 p-3 rounded-xl ${
+              avgSleep >= goals.sleepHours * 60
+                ? "bg-green-500/10 border border-green-500/20"
+                : avgSleep >= (goals.sleepHours - 1) * 60
+                  ? "bg-yellow-500/10 border border-yellow-500/20"
+                  : "bg-red-500/10 border border-red-500/20"
+            }`}>
               <span className="text-lg">😴</span>
               <div>
-                <p
-                  className={`text-sm font-medium ${
-                    avgSleep >= 420
-                      ? "text-green-400"
-                      : avgSleep >= 360
-                        ? "text-yellow-400"
-                        : "text-red-400"
-                  }`}
-                >
-                  {avgSleep >= 420
+                <p className={`text-sm font-medium ${
+                  avgSleep >= goals.sleepHours * 60
+                    ? "text-green-400"
+                    : avgSleep >= (goals.sleepHours - 1) * 60
+                      ? "text-yellow-400"
+                      : "text-red-400"
+                }`}>
+                  {avgSleep >= goals.sleepHours * 60
                     ? "Ótima qualidade de sono! Continue assim."
-                    : avgSleep >= 360
-                      ? "Seu sono está um pouco abaixo do ideal. Tente dormir mais 30 minutos."
-                      : "Você está dormindo menos do que o recomendado. Priorize 7-8 horas de sono."}
+                    : avgSleep >= (goals.sleepHours - 1) * 60
+                      ? "Seu sono está um pouco abaixo do ideal."
+                      : "Você está dormindo menos do que o recomendado."}
                 </p>
                 <p className="text-slate-500 text-xs mt-0.5">
                   Média: {Math.floor(avgSleep / 60)}h {avgSleep % 60}min/noite
@@ -805,22 +706,16 @@ export default function DashboardClient() {
           )}
 
           {latestHeartRate && (
-            <div
-              className={`flex items-start gap-3 p-3 rounded-xl ${
-                latestHeartRate >= 60 && latestHeartRate <= 100
-                  ? "bg-green-500/10 border border-green-500/20"
-                  : "bg-yellow-500/10 border border-yellow-500/20"
-              }`}
-            >
+            <div className={`flex items-start gap-3 p-3 rounded-xl ${
+              latestHeartRate >= 60 && latestHeartRate <= 100
+                ? "bg-green-500/10 border border-green-500/20"
+                : "bg-yellow-500/10 border border-yellow-500/20"
+            }`}>
               <span className="text-lg">❤️</span>
               <div>
-                <p
-                  className={`text-sm font-medium ${
-                    latestHeartRate >= 60 && latestHeartRate <= 100
-                      ? "text-green-400"
-                      : "text-yellow-400"
-                  }`}
-                >
+                <p className={`text-sm font-medium ${
+                  latestHeartRate >= 60 && latestHeartRate <= 100 ? "text-green-400" : "text-yellow-400"
+                }`}>
                   {latestHeartRate >= 60 && latestHeartRate <= 100
                     ? "Frequência cardíaca em repouso normal."
                     : "Frequência cardíaca fora da faixa normal. Consulte um médico."}
