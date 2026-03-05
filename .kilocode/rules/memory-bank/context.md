@@ -53,6 +53,9 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix app crash on Vercel: use fallback values for auth config (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, AUTH_SECRET) when env vars are missing
 - [x] Fix Service Worker redirect error: add redirect: 'follow' mode and error handling in public/sw.js
 - [x] Fix Activity page calendar overflow on mobile: adjust date picker positioning with left-0 sm:left-auto classes
+- [x] Fix Service Worker syntax error: fixed extra closing parenthesis in sw.js fetch handler
+- [x] Add slide-out navigation menu for mobile with profile access
+- [x] Add clickable user avatar/name to navigate to Profile page (desktop and mobile)
 
 ## Current Structure
 
@@ -159,3 +162,4 @@ export async function GET() {
 | 2026-03-05 | Add .env.example template for deployment configuration
 | 2026-03-05 | Fix Service Worker redirect error: add redirect follow mode and error handling
 | 2026-03-05 | Fix Activity page calendar overflow on mobile
+| 2026-03-05 | Add slide-out navigation menu for mobile with profile link
