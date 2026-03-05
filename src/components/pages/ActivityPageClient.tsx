@@ -241,18 +241,16 @@ export default function ActivityPageClient() {
   return (
     <div className="space-y-6">
       {/* Header with Date Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Atividade Física</h1>
-        </div>
+      <div className="flex flex-col gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Atividade Física</h1>
         
         {/* Date Selector */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {quickDates.map((q) => (
             <button
               key={q.mode}
               onClick={() => handleQuickDate(q.value, q.mode)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                 selectedMode === q.mode
                   ? "bg-blue-500 text-white"
                   : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
@@ -266,24 +264,25 @@ export default function ActivityPageClient() {
           <div className="relative">
             <button
               onClick={() => setShowDatePicker(!showDatePicker)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
+              className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 ${
                 selectedMode === "custom"
                   ? "bg-blue-500 text-white"
                   : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
               }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              {selectedMode === "custom" && selectedDate 
-                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR")
-                : "Personalizado"}
+              {selectedMode === "custom" && selectedDate
+                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit' })
+                : <span className="hidden sm:inline">Personalizado</span>}
+              {selectedMode !== "custom" && <span className="sm:hidden">📅</span>}
             </button>
             
             {showDatePicker && (
               <div
                 ref={datePickerRef}
-                className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-50 min-w-[280px]"
+                className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-50 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[280px] max-w-[320px]"
               >
                 <input
                   type="date"
@@ -330,10 +329,11 @@ export default function ActivityPageClient() {
       </div>
 
       {/* Summary cards - hide Dias com Meta when single day selected */}
-      <div className={`grid gap-4 ${selectedMode === "total" ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 lg:grid-cols-3"}`}>
+      <div className={`grid gap-3 sm:gap-4 ${selectedMode === "total" ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 lg:grid-cols-3"}`}>
         {[
           {
             label: "Total de Passos",
+            shortLabel: "Passos",
             value: totalSteps.toLocaleString("pt-BR"),
             unit: "passos",
             color: "text-blue-400",
@@ -341,6 +341,7 @@ export default function ActivityPageClient() {
           },
           {
             label: "Calorias Totais",
+            shortLabel: "Calorias",
             value: Math.round(totalCalories).toLocaleString("pt-BR"),
             unit: "kcal",
             color: "text-orange-400",
@@ -348,6 +349,7 @@ export default function ActivityPageClient() {
           },
           {
             label: "Distância Total",
+            shortLabel: "Distância",
             value: (totalDistance / 1000).toFixed(1),
             unit: "km",
             color: "text-cyan-400",
@@ -356,36 +358,38 @@ export default function ActivityPageClient() {
         ].map((card) => (
           <div
             key={card.label}
-            className="bg-slate-900 border border-slate-800 rounded-2xl p-5"
+            className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5"
           >
-            <div className="flex items-start justify-between mb-2">
-              <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">
-                {card.label}
+            <div className="flex items-start justify-between mb-1 sm:mb-2">
+              <p className="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide truncate">
+                <span className="hidden sm:inline">{card.label}</span>
+                <span className="sm:hidden">{card.shortLabel}</span>
               </p>
-              <span className="text-xl">{card.icon}</span>
+              <span className="text-lg sm:text-xl ml-1">{card.icon}</span>
             </div>
             <div className="flex items-baseline gap-1">
-              <span className={`text-2xl font-bold ${card.color}`}>
+              <span className={`text-lg sm:text-2xl font-bold ${card.color} truncate`}>
                 {card.value}
               </span>
-              <span className="text-slate-400 text-sm">{card.unit}</span>
+              <span className="text-slate-400 text-xs sm:text-sm">{card.unit}</span>
             </div>
           </div>
         ))}
         {/* Dias com Meta - only show in total mode */}
         {selectedMode === "total" && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <div className="flex items-start justify-between mb-2">
-              <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">
-                Dias com Meta
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5">
+            <div className="flex items-start justify-between mb-1 sm:mb-2">
+              <p className="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide truncate">
+                <span className="hidden sm:inline">Dias com Meta</span>
+                <span className="sm:hidden">Metas</span>
               </p>
-              <span className="text-xl">🎯</span>
+              <span className="text-lg sm:text-xl ml-1">🎯</span>
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-green-400">
+              <span className="text-lg sm:text-2xl font-bold text-green-400">
                 {daysWithGoal}/7
               </span>
-              <span className="text-slate-400 text-sm">dias</span>
+              <span className="text-slate-400 text-xs sm:text-sm">dias</span>
             </div>
           </div>
         )}

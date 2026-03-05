@@ -47,16 +47,16 @@ function StatCard({
   goal?: string;
 }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">{label}</p>
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5">
+      <div className="flex items-start justify-between mb-2 sm:mb-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide truncate">{label}</p>
           <div className="flex items-baseline gap-1 mt-1">
-            <span className={`text-2xl font-bold ${color}`}>{value}</span>
-            <span className="text-slate-400 text-sm">{unit}</span>
+            <span className={`text-lg sm:text-2xl font-bold ${color} truncate`}>{value}</span>
+            <span className="text-slate-400 text-xs sm:text-sm">{unit}</span>
           </div>
         </div>
-        <span className="text-2xl">{icon}</span>
+        <span className="text-xl sm:text-2xl ml-2">{icon}</span>
       </div>
       {progress !== undefined && (
         <div>
@@ -67,7 +67,7 @@ function StatCard({
             />
           </div>
           {goal && (
-            <p className="text-xs text-slate-500 mt-1">Meta: {goal}</p>
+            <p className="text-[10px] sm:text-xs text-slate-500 mt-1 truncate">Meta: {goal}</p>
           )}
         </div>
       )}
@@ -514,41 +514,44 @@ export default function DashboardClient() {
       />
 
       {/* Header with Date Selector and Actions */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Visão Geral</h1>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Visão Geral</h1>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {/* Export buttons */}
           <button
             onClick={handleExportCSV}
             disabled={!data}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800/50 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+            className="px-2 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800/50 text-slate-300 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center gap-1"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            CSV
+            <span className="hidden sm:inline">CSV</span>
+            <span className="sm:hidden">📊</span>
           </button>
           <button
             onClick={handleExportJSON}
             disabled={!data}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800/50 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+            className="px-2 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800/50 text-slate-300 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center gap-1"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            JSON
+            <span className="hidden sm:inline">JSON</span>
+            <span className="sm:hidden">📝</span>
           </button>
           <button
             onClick={() => setShowGoalsModal(true)}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+            className="px-2 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center gap-1"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            Metas
+            <span className="hidden sm:inline">Metas</span>
+            <span className="sm:hidden">🎯</span>
           </button>
           
           {/* Date buttons */}
@@ -556,7 +559,7 @@ export default function DashboardClient() {
             <button
               key={q.mode}
               onClick={() => handleQuickDate(q.mode)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                 selectedMode === q.mode
                   ? "bg-blue-500 text-white"
                   : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
@@ -570,22 +573,23 @@ export default function DashboardClient() {
           <div className="relative">
             <button
               onClick={() => setShowDatePicker(!showDatePicker)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
+              className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 ${
                 selectedMode === "custom"
                   ? "bg-blue-500 text-white"
                   : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
               }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              {selectedMode === "custom" && customDates.length > 0 
-                ? `${customDates.length} dia(s)`
-                : "Personalizado"}
+              {selectedMode === "custom" && customDates.length > 0
+                ? `${customDates.length} d`
+                : <span className="hidden sm:inline">Personalizado</span>}
+              {selectedMode !== "custom" && <span className="sm:hidden">📅</span>}
             </button>
             
             {showDatePicker && (
-              <div className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-10 min-w-[250px]">
+              <div className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-xl z-10 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[250px] max-w-[320px]">
                 <input
                   type="date"
                   onChange={handleDateChange}
