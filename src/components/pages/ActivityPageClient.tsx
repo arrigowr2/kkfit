@@ -86,8 +86,47 @@ export default function ActivityPageClient() {
       setSelectedDate("");
       fetchData("", "total");
     } else if (mode === "today") {
+      // First fetch total data to find the most recent date with data
       setSelectedDate("");
-      fetchData("", "today");
+      setLoading(true);
+      fetch("/api/fitness/summary?date=total")
+        .then((r) => r.json())
+        .then((totalData: ActivityData) => {
+          // Find the latest date with steps or activity data
+          const latestStep = totalData.steps?.length > 0
+            ? totalData.steps.reduce((latest, current) =>
+                new Date(current.date) > new Date(latest.date) ? current : latest
+              )
+            : null;
+          const latestActivity = totalData.activity?.length > 0
+            ? totalData.activity.reduce((latest, current) =>
+                new Date(current.date) > new Date(latest.date) ? current : latest
+              )
+            : null;
+          
+          let latestDate: string | null = null;
+          if (latestStep && latestActivity) {
+            latestDate = new Date(latestStep.date) > new Date(latestActivity.date)
+              ? latestStep.date
+              : latestActivity.date;
+          } else if (latestStep) {
+            latestDate = latestStep.date;
+          } else if (latestActivity) {
+            latestDate = latestActivity.date;
+          }
+          
+          if (latestDate) {
+            // Fetch data for the most recent date with activity
+            fetchData(latestDate, "today");
+          } else {
+            // Fallback to actual today if no data found
+            fetchData("", "today");
+          }
+        })
+        .catch(() => {
+          // Fallback on error
+          fetchData("", "today");
+        });
     } else if (mode === "yesterday") {
       setSelectedDate(value);
       setShowDatePicker(false);
