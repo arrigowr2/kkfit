@@ -250,12 +250,14 @@ export default function DashboardClient() {
         throw new Error(`HTTP ${response.status}`);
       }
       const result = await response.json();
-      console.log("[DashboardClient] Response:", { 
-        targetDate: result.targetDate, 
+      console.log("[DashboardClient] Response:", {
+        targetDate: result.targetDate,
         today: result.today,
         stepsCount: result.steps?.length,
         firstStepDate: result.steps?.[0]?.date,
-        lastStepDate: result.steps?.[result.steps?.length - 1]?.date
+        lastStepDate: result.steps?.[result.steps?.length - 1]?.date,
+        sleepCount: result.sleep?.length,
+        sleepData: result.sleep
       });
       setData(result);
     } catch (err) {

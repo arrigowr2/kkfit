@@ -398,6 +398,7 @@ export async function getSleepData(
     }
   }
 
+  console.log("[Sleep] Aggregate data result:", result.length, "records", result);
   return result.sort((a, b) => a.date.localeCompare(b.date));
 }
 

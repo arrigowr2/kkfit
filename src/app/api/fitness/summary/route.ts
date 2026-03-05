@@ -212,6 +212,15 @@ export async function GET(request: Request) {
         ]);
     }
 
+    console.log("[API Summary] Returning response:", {
+      targetDate: dateStr,
+      isTotal,
+      isToday,
+      stepsCount: stepsData?.length,
+      sleepCount: sleepData?.length,
+      sleepData: sleepData
+    });
+    
     const response = {
       targetDate: dateStr,
       today: todayData,
