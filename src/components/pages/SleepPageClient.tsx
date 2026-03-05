@@ -46,10 +46,10 @@ export default function SleepPageClient() {
   const shortestSleep = data.length > 0 ? Math.min(...data.map((d) => d.duration)) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Qualidade do Sono</h1>
-        <p className="text-slate-400 text-sm mt-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Qualidade do Sono</h1>
+        <p className="text-slate-400 text-xs sm:text-sm mt-1">
           Análise dos últimos 30 dias
         </p>
       </div>

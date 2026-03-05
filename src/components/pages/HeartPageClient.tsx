@@ -50,17 +50,17 @@ export default function HeartPageClient() {
   const zone = getZone(avgBpm);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Frequência Cardíaca</h1>
-        <p className="text-slate-400 text-sm mt-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Frequência Cardíaca</h1>
+        <p className="text-slate-400 text-xs sm:text-sm mt-1">
           Monitoramento dos últimos 30 dias
         </p>
       </div>
 
       {data.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 text-center">
-          <p className="text-4xl mb-3">❤️</p>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-10 text-center">
+          <p className="text-3xl sm:text-4xl mb-3">❤️</p>
           <p className="text-slate-400">
             Nenhum dado de frequência cardíaca encontrado.
           </p>
@@ -72,59 +72,59 @@ export default function HeartPageClient() {
       ) : (
         <>
           {/* Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-              <p className="text-slate-400 text-xs uppercase tracking-wide mb-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5">
+              <p className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wide mb-1 sm:mb-2">
                 Média
               </p>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-red-400">{avgBpm}</span>
-                <span className="text-slate-400">bpm</span>
+                <span className="text-2xl sm:text-3xl font-bold text-red-400">{avgBpm}</span>
+                <span className="text-slate-400 text-sm sm:text-base">bpm</span>
               </div>
-              <div className={`mt-3 px-3 py-1.5 rounded-lg border text-xs font-medium inline-block ${zone.bg} ${zone.color}`}>
+              <div className={`mt-2 sm:mt-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border text-xs font-medium inline-block ${zone.bg} ${zone.color}`}>
                 {zone.label}
               </div>
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-              <p className="text-slate-400 text-xs uppercase tracking-wide mb-2">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5">
+              <p className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wide mb-1 sm:mb-2">
                 Mínima Registrada
               </p>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-green-400">{minBpm}</span>
-                <span className="text-slate-400">bpm</span>
+                <span className="text-2xl sm:text-3xl font-bold text-green-400">{minBpm}</span>
+                <span className="text-slate-400 text-sm sm:text-base">bpm</span>
               </div>
-              <p className="text-slate-500 text-xs mt-3">
+              <p className="text-slate-500 text-xs mt-2 sm:mt-3">
                 Frequência em repouso
               </p>
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-              <p className="text-slate-400 text-xs uppercase tracking-wide mb-2">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5">
+              <p className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wide mb-1 sm:mb-2">
                 Máxima Registrada
               </p>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-orange-400">{maxBpm}</span>
-                <span className="text-slate-400">bpm</span>
+                <span className="text-2xl sm:text-3xl font-bold text-orange-400">{maxBpm}</span>
+                <span className="text-slate-400 text-sm sm:text-base">bpm</span>
               </div>
-              <p className="text-slate-500 text-xs mt-3">
+              <p className="text-slate-500 text-xs mt-2 sm:mt-3">
                 Frequência durante atividade
               </p>
             </div>
           </div>
 
           {/* Chart */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <h3 className="text-white font-semibold mb-1">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5">
+            <h3 className="text-white font-semibold text-sm sm:text-base mb-1">
               Tendência de Frequência Cardíaca
             </h3>
-            <p className="text-slate-400 text-xs mb-4">
-              Vermelho = média · Laranja tracejado = máxima · Verde tracejado = mínima
+            <p className="text-slate-400 text-xs mb-3 sm:mb-4">
+              Vermelho = média · Laranja = máxima · Verde = mínima
             </p>
             <HeartRateChart data={data} />
           </div>
 
           {/* Zones reference */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <h3 className="text-white font-semibold mb-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5">
+            <h3 className="text-white font-semibold text-sm sm:text-base mb-3 sm:mb-4">
               Zonas de Frequência Cardíaca
             </h3>
             <div className="space-y-3">
@@ -149,8 +149,8 @@ export default function HeartPageClient() {
           </div>
 
           {/* History table */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <h3 className="text-white font-semibold mb-4">Histórico</h3>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5">
+            <h3 className="text-white font-semibold text-sm sm:text-base mb-3 sm:mb-4">Histórico</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
