@@ -93,65 +93,14 @@ export default function ActivityPageClient() {
   }, []);
 
   const handleQuickDate = (value: string, mode: "today" | "yesterday" | "custom" | "total") => {
-    console.log("[Activity] handleQuickDate called:", { value, mode });
     setSelectedMode(mode);
     if (mode === "total") {
       setSelectedDate("");
       fetchData("", "total");
     } else if (mode === "today") {
-      // First fetch total data to find the most recent date with data
+      // Use actual today date
       setSelectedDate("");
-      setLoading(true);
-      console.log("[Activity] Fetching total data to find latest date...");
-      fetch("/api/fitness/summary?date=total")
-        .then((r) => r.json())
-        .then((totalData: ActivityData) => {
-          console.log("[Activity] Total data received:", {
-            stepsLength: totalData.steps?.length,
-            activityLength: totalData.activity?.length,
-            steps: totalData.steps,
-            activity: totalData.activity
-          });
-          // Find the latest date with steps or activity data
-          const latestStep = totalData.steps?.length > 0
-            ? totalData.steps.reduce((latest, current) =>
-                new Date(current.date) > new Date(latest.date) ? current : latest
-              )
-            : null;
-          const latestActivity = totalData.activity?.length > 0
-            ? totalData.activity.reduce((latest, current) =>
-                new Date(current.date) > new Date(latest.date) ? current : latest
-              )
-            : null;
-          
-          let latestDate: string | null = null;
-          if (latestStep && latestActivity) {
-            latestDate = new Date(latestStep.date) > new Date(latestActivity.date)
-              ? latestStep.date
-              : latestActivity.date;
-          } else if (latestStep) {
-            latestDate = latestStep.date;
-          } else if (latestActivity) {
-            latestDate = latestActivity.date;
-          }
-          
-          console.log("[Activity] Latest date found:", latestDate);
-          
-          if (latestDate) {
-            // Fetch data for the most recent date with activity
-            console.log("[Activity] Fetching data for specific date:", latestDate);
-            fetchData(latestDate, "today");
-          } else {
-            // Fallback to actual today if no data found
-            console.log("[Activity] No date found, falling back to 'today'");
-            fetchData("", "today");
-          }
-        })
-        .catch((err) => {
-          console.error("[Activity] Error fetching total data:", err);
-          // Fallback on error
-          fetchData("", "today");
-        });
+      fetchData("", "today");
     } else if (mode === "yesterday") {
       setSelectedDate(value);
       setShowDatePicker(false);
