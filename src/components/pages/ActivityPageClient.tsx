@@ -44,6 +44,7 @@ export default function ActivityPageClient() {
   ];
 
   const fetchData = (date: string, mode: string) => {
+    console.log("[Activity] fetchData called:", { date, mode });
     setLoading(true);
     // If mode is 'total', send 'total' as param; if mode is 'today' and no date provided, send 'today'; otherwise send the date
     let url: string;
@@ -62,13 +63,20 @@ export default function ActivityPageClient() {
     } else {
       url = "/api/fitness/summary?date=total";
     }
+    console.log("[Activity] Fetching URL:", url);
     fetch(url)
       .then((r) => r.json())
       .then((d) => {
+        console.log("[Activity] Data received:", {
+          today: d.today,
+          stepsLength: d.steps?.length,
+          activityLength: d.activity?.length
+        });
         setData(d);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("[Activity] Error fetching data:", err);
         setLoading(false);
       });
   };
@@ -85,6 +93,7 @@ export default function ActivityPageClient() {
   }, []);
 
   const handleQuickDate = (value: string, mode: "today" | "yesterday" | "custom" | "total") => {
+    console.log("[Activity] handleQuickDate called:", { value, mode });
     setSelectedMode(mode);
     if (mode === "total") {
       setSelectedDate("");
@@ -93,9 +102,16 @@ export default function ActivityPageClient() {
       // First fetch total data to find the most recent date with data
       setSelectedDate("");
       setLoading(true);
+      console.log("[Activity] Fetching total data to find latest date...");
       fetch("/api/fitness/summary?date=total")
         .then((r) => r.json())
         .then((totalData: ActivityData) => {
+          console.log("[Activity] Total data received:", {
+            stepsLength: totalData.steps?.length,
+            activityLength: totalData.activity?.length,
+            steps: totalData.steps,
+            activity: totalData.activity
+          });
           // Find the latest date with steps or activity data
           const latestStep = totalData.steps?.length > 0
             ? totalData.steps.reduce((latest, current) =>
@@ -119,15 +135,20 @@ export default function ActivityPageClient() {
             latestDate = latestActivity.date;
           }
           
+          console.log("[Activity] Latest date found:", latestDate);
+          
           if (latestDate) {
             // Fetch data for the most recent date with activity
+            console.log("[Activity] Fetching data for specific date:", latestDate);
             fetchData(latestDate, "today");
           } else {
             // Fallback to actual today if no data found
+            console.log("[Activity] No date found, falling back to 'today'");
             fetchData("", "today");
           }
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error("[Activity] Error fetching total data:", err);
           // Fallback on error
           fetchData("", "today");
         });
