@@ -255,6 +255,74 @@ export async function getHeartRateData(
   return result.sort((a, b) => a.date.localeCompare(b.date));
 }
 
+// Helper function to fetch sleep sessions from Google Fit Sessions API
+async function fetchSleepSessions(
+  accessToken: string,
+  startTime: Date,
+  endTime: Date
+): Promise<SleepData[]> {
+  const startTimeMillis = startTime.getTime();
+  const endTimeMillis = endTime.getTime();
+  
+  const url = new URL(`${FITNESS_API_BASE}/sessions`);
+  url.searchParams.append("startTime", startTimeMillis.toString());
+  url.searchParams.append("endTime", endTimeMillis.toString());
+  url.searchParams.append("activityType", "72"); // Sleep activity type
+  
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    console.log("[Sleep Sessions] API error:", response.status);
+    return [];
+  }
+
+  const data = await response.json();
+  const sessions = data.session || [];
+  
+  // Group sleep sessions by date
+  const sleepByDate: Record<string, { duration: number; segments: number }> = {};
+  
+  for (const session of sessions) {
+    const sessionStart = parseInt(session.startTimeMillis);
+    const sessionEnd = parseInt(session.endTimeMillis);
+    const duration = (sessionEnd - sessionStart) / 60000; // minutes
+    
+    // Use the session start date as the sleep date
+    const date = (() => {
+      const d = new Date(sessionStart);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    })();
+    
+    if (!sleepByDate[date]) {
+      sleepByDate[date] = { duration: 0, segments: 0 };
+    }
+    sleepByDate[date].duration += duration;
+    sleepByDate[date].segments += 1;
+  }
+  
+  // Convert to SleepData array
+  return Object.entries(sleepByDate)
+    .map(([date, data]) => {
+      const totalMinutes = Math.round(data.duration);
+      const quality =
+        totalMinutes >= 420
+          ? "Boa"
+          : totalMinutes >= 360
+            ? "Regular"
+            : "Insuficiente";
+      return { date, duration: totalMinutes, quality };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export async function getSleepData(
   accessToken: string,
   days: number = 30,
@@ -274,6 +342,18 @@ export async function getSleepData(
     startTime.setDate(startTime.getDate() - days);
   }
 
+  // Try fetching from Sessions API first (more reliable for sleep data)
+  try {
+    const sessionData = await fetchSleepSessions(accessToken, startTime, endTime);
+    if (sessionData.length > 0) {
+      console.log("[Sleep] Found data via Sessions API:", sessionData.length, "records");
+      return sessionData;
+    }
+  } catch (error) {
+    console.log("[Sleep] Sessions API failed, falling back to aggregate");
+  }
+
+  // Fallback to aggregate data approach
   const body = {
     aggregateBy: [
       {
