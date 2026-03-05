@@ -47,6 +47,8 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix Activity page 'Hoje' button: now fetches specific date instead of keyword "today"
 - [x] Improve mobile responsiveness: adjust padding, font sizes and responsive breakpoints in Dashboard and Activity pages
 - [x] Improve mobile responsiveness for Heart and Sleep pages: responsive padding and font sizes
+- [x] Fix .gitignore: remove public/ from ignored list so static assets deploy to Vercel
+- [x] Add .env.example template for deployment configuration
 
 ## Current Structure
 
@@ -148,3 +150,6 @@ export async function GET() {
 | 2026-03-05 | Add enhanced debug logging for sleep data API calls
 | 2026-03-05 | Fix Sleep Sessions API error: changed from milliseconds to ISO 8601 format
 | 2026-03-05 | Fix Activity page 'Hoje' button: now fetches specific date instead of keyword "today"
+| 2026-03-05 | Improve mobile responsiveness: adjust padding, font sizes and responsive breakpoints
+| 2026-03-05 | Fix .gitignore: remove public/ from ignored list so static assets deploy to Vercel
+| 2026-03-05 | Add .env.example template for deployment configuration
