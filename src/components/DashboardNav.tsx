@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { PWAInstallButton } from "@/components/ui/PWAInstallButton";
 
 interface User {
   name?: string | null;
@@ -113,7 +112,6 @@ export default function DashboardNav({ user }: DashboardNavProps) {
 
             {/* User menu - Desktop */}
             <div className="hidden md:flex items-center gap-3">
-              <PWAInstallButton />
               {/* User avatar as link to profile */}
               <Link href="/dashboard/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                 {user?.image ? (
@@ -145,7 +143,6 @@ export default function DashboardNav({ user }: DashboardNavProps) {
 
             {/* Mobile user button - just avatar */}
             <div className="flex md:hidden items-center gap-2">
-              <PWAInstallButton />
               <Link href="/dashboard/profile">
                 {user?.image ? (
                   <Image
