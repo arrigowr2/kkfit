@@ -61,12 +61,19 @@ export default function SleepPageClient() {
           <p className="text-slate-500 text-sm mt-1">
             Use um dispositivo compatível com Google Fit para registrar seu sono.
           </p>
-          <p className="text-slate-500 text-sm mt-3">
-            💡 <strong>Dica:</strong> Se você já usa um dispositivo, tente{" "}
+          <div className="mt-4 space-y-2 text-sm text-slate-500">
+            <p>💡 <strong>Possíveis causas:</strong></p>
+            <ul className="text-left inline-block space-y-1">
+              <li>• Você não possui dados de sono registrados no Google Fit</li>
+              <li>• O dispositivo não está sincronizando dados de sono</li>
+              <li>• Os dados estão em outro aplicativo (Samsung Health, Garmin, etc.)</li>
+            </ul>
+          </div>
+          <p className="text-slate-500 text-sm mt-4">
             <a href="/signout" className="text-blue-400 hover:underline">
-              sair e fazer login novamente
+              Sair e fazer login novamente
             </a>{" "}
-            para atualizar as permissões.
+            pode ajudar se for um problema de permissão.
           </p>
         </div>
       ) : (

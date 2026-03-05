@@ -282,11 +282,13 @@ async function fetchSleepSessions(
   if (!response.ok) {
     const errorText = await response.text();
     console.log("[Sleep Sessions] API error:", response.status, errorText);
-    return [];
+    throw new Error(`Sleep Sessions API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
+  console.log("[Sleep Sessions] Raw response:", JSON.stringify(data, null, 2));
   const sessions = data.session || [];
+  console.log("[Sleep Sessions] Found sessions:", sessions.length);
   
   // Group sleep sessions by date
   const sleepByDate: Record<string, { duration: number; segments: number }> = {};
@@ -347,7 +349,8 @@ export async function getSleepData(
   }
 
   // Try fetching from Sessions API first (more reliable for sleep data)
-  console.log("[Sleep] Fetching sleep data from", startTime, "to", endTime);
+  console.log("[Sleep] Fetching sleep data from", startTime.toISOString(), "to", endTime.toISOString());
+  console.log("[Sleep] Access token present:", !!accessToken);
   try {
     const sessionData = await fetchSleepSessions(accessToken, startTime, endTime);
     console.log("[Sleep] Sessions API returned:", sessionData.length, "records");
@@ -357,7 +360,8 @@ export async function getSleepData(
     }
     console.log("[Sleep] Sessions API returned empty, trying aggregate...");
   } catch (error) {
-    console.log("[Sleep] Sessions API failed:", error, "- falling back to aggregate");
+    console.error("[Sleep] Sessions API failed:", error);
+    console.log("[Sleep] Falling back to aggregate API...");
   }
 
   // Fallback to aggregate data approach
@@ -372,10 +376,13 @@ export async function getSleepData(
     endTimeMillis: endTime.getTime(),
   };
 
+  console.log("[Sleep] Aggregate API request:", JSON.stringify(body, null, 2));
   const data = await fetchFitData(accessToken, "/dataset:aggregate", body);
+  console.log("[Sleep] Aggregate API response:", JSON.stringify(data, null, 2)?.substring(0, 2000));
 
   const result: SleepData[] = [];
   if (data.bucket) {
+    console.log("[Sleep] Number of buckets:", data.bucket.length);
     for (const bucket of data.bucket) {
       const date = (() => {
         // Use UTC to format date since Google Fit bucket timestamps are in UTC
