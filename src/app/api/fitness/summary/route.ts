@@ -21,10 +21,12 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const dateParam = searchParams.get("date"); // YYYY-MM-DD format, or null for today, "total" for all data
   const mode = searchParams.get("mode"); // "multiple" for multiple dates
+  const datesParam = searchParams.get("dates"); // comma-separated dates for multiple mode
   const days = parseInt(searchParams.get("days") || "30");
 
-  // Check if requesting multiple dates
-  const isMultiple = mode === "multiple" && dateParam && dateParam.includes(",");
+  // Check if requesting multiple dates (either in dateParam or datesParam)
+  const isMultiple = mode === "multiple" && 
+    ((dateParam && dateParam.includes(",")) || (datesParam && datesParam.includes(",")));
 
   // Check if requesting all data (Total)
   const isTotal = dateParam === "total" || dateParam === "" || dateParam === null || dateParam === undefined;
@@ -127,8 +129,9 @@ export async function GET(request: Request) {
       heartRateData = (heartRateData || []).filter(d => d.date === todayStr);
       sleepData = (sleepData || []).filter(d => d.date === todayStr);
     } else if (isMultiple) {
-      // Multiple dates - comma-separated
-      const dateList = dateParam.split(",").map(d => d.trim());
+      // Multiple dates - comma-separated (use datesParam if available, fallback to dateParam)
+      const datesSource = datesParam || dateParam || "";
+      const dateList = datesSource.split(",").map(d => d.trim()).filter(d => d.length > 0);
       // Sort dates and calculate the range properly
       const sortedDates = [...dateList].sort();
       const firstDate = sortedDates[0];
