@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kkfit-v1';
+const CACHE_NAME = 'kkfit-v2';
 const STATIC_ASSETS = [
   '/',
   '/dashboard',
