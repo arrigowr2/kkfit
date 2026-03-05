@@ -22,6 +22,7 @@ const navItems = [
   { href: "/dashboard/heart", label: "Coração", icon: "❤️" },
   { href: "/dashboard/sleep", label: "Sono", icon: "😴" },
   { href: "/dashboard/weight", label: "Peso", icon: "⚖️" },
+  { href: "/dashboard/achievements", label: "Conquistas", icon: "🏆" },
   { href: "/dashboard/profile", label: "Perfil", icon: "👤" },
 ];
 
