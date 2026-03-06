@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 interface ProfileData {
   height?: number;
@@ -20,6 +20,10 @@ export default function ProfilePageClient() {
   const [loading, setLoading] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [weeklyExportEnabled, setWeeklyExportEnabled] = useState(false);
+  const [exportEmail, setExportEmail] = useState("");
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
 
   // Load profile data from localStorage
   useEffect(() => {
@@ -36,12 +40,87 @@ export default function ProfilePageClient() {
         // Default to now if no sync recorded
         setLastSyncTime(new Date().toISOString());
       }
+      // Check if weekly export is enabled
+      const weeklyExport = localStorage.getItem("kkfit_weekly_export");
+      if (weeklyExport) {
+        setWeeklyExportEnabled(true);
+      }
     } catch (err) {
       console.error("Error loading profile data:", err);
       setError("Erro ao carregar dados do perfil");
     }
     setLoading(false);
   }, []);
+
+  const enableWeeklyExport = async () => {
+    if (!exportEmail) {
+      setExportMessage("Por favor, insira seu email");
+      return;
+    }
+
+    setExportLoading(true);
+    setExportMessage(null);
+
+    try {
+      // Get the refresh token from session
+      const response = await fetch("/api/fitness/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "store",
+          refreshToken: (session as any)?.refreshToken,
+          email: exportEmail,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setWeeklyExportEnabled(true);
+        localStorage.setItem("kkfit_weekly_export", "true");
+        setExportMessage("Exportação semanal ativada com sucesso! ✅");
+      } else {
+        setExportMessage(result.error || "Erro ao ativar exportação semanal");
+      }
+    } catch (err) {
+      console.error("Error enabling weekly export:", err);
+      setExportMessage("Erro ao conectar com o servidor");
+    }
+
+    setExportLoading(false);
+  };
+
+  const disableWeeklyExport = () => {
+    setWeeklyExportEnabled(false);
+    localStorage.removeItem("kkfit_weekly_export");
+    setExportMessage("Exportação semanal desativada");
+  };
+
+  const testWeeklyExport = async () => {
+    setExportLoading(true);
+    setExportMessage(null);
+
+    try {
+      const response = await fetch("/api/fitness/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send" }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setExportMessage(`Relatório enviado com sucesso! 📧`);
+      } else {
+        setExportMessage(result.error || "Erro ao enviar relatório");
+      }
+    } catch (err) {
+      console.error("Error testing weekly export:", err);
+      setExportMessage("Erro ao conectar com o servidor");
+    }
+
+    setExportLoading(false);
+  };
 
   const saveProfile = (data: ProfileData) => {
     localStorage.setItem("kkfit_profile", JSON.stringify(data));
@@ -282,6 +361,84 @@ export default function ProfilePageClient() {
         </div>
         <p className="text-slate-500 text-xs mt-4">
           Os dados são sincronizados automaticamente com o Google Fit ao acessar o dashboard.
+        </p>
+      </div>
+
+      {/* Weekly Export Settings */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+        <h2 className="text-white font-semibold mb-4">📧 Exportação Semanal Automática</h2>
+        <p className="text-slate-400 text-sm mb-4">
+          Receba um email semanal com seus dados de fitness (CSV e JSON) automaticamente.
+        </p>
+
+        {!weeklyExportEnabled ? (
+          <div className="space-y-4">
+            <div>
+              <label className="text-slate-400 text-xs uppercase tracking-wide">
+                Email para recebimento
+              </label>
+              <input
+                type="email"
+                value={exportEmail}
+                onChange={(e) => setExportEmail(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white mt-1 focus:outline-none focus:border-blue-500"
+                placeholder="seu@email.com"
+              />
+            </div>
+            <button
+              onClick={enableWeeklyExport}
+              disabled={exportLoading}
+              className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
+            >
+              {exportLoading ? "Ativando..." : "Ativar Exportação Semanal"}
+            </button>
+            {exportMessage && (
+              <p className={`text-sm ${exportMessage.includes("sucesso") || exportMessage.includes("ativada") ? "text-green-400" : "text-red-400"}`}>
+                {exportMessage}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-green-400">
+              <span>✓</span>
+              <span className="font-medium">Exportação semanal ativa</span>
+            </div>
+            <p className="text-slate-400 text-sm">
+              Você receberá um email toda semana com o resumo dos seus dados.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={testWeeklyExport}
+                disabled={exportLoading}
+                className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+              >
+                {exportLoading ? "Enviando..." : "Testar Agora"}
+              </button>
+              <button
+                onClick={disableWeeklyExport}
+                className="flex-1 py-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition-colors font-medium"
+              >
+                Desativar
+              </button>
+            </div>
+            {exportMessage && (
+              <p className={`text-sm ${exportMessage.includes("sucesso") || exportMessage.includes("enviado") ? "text-green-400" : "text-red-400"}`}>
+                {exportMessage}
+              </p>
+            )}
+          </div>
+        )}
+
+        <p className="text-slate-500 text-xs mt-4">
+          ⚠️ Para funcionar, você precisa configurar as variáveis EMAIL_USER e EMAIL_PASS no Vercel.
+          <a 
+            href="https://github.com/google/google-auth-library-nodejs/blob/main/examples/oauth2-with-url.js" 
+            target="_blank" 
+            className="text-blue-400 hover:underline ml-1"
+          >
+            Veja como configurar
+          </a>
         </p>
       </div>
 
