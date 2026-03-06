@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -52,13 +52,7 @@ export default function CaloriesChart({ data }: CaloriesChartProps) {
 
   return (
     <ResponsiveContainer width="100%" height={200}>
-      <AreaChart data={last14} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-        <defs>
-          <linearGradient id="caloriesGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#f97316" stopOpacity={0.4} />
-            <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-          </linearGradient>
-        </defs>
+      <BarChart data={last14} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
         <XAxis
           dataKey="date"
@@ -75,15 +69,12 @@ export default function CaloriesChart({ data }: CaloriesChartProps) {
           tickLine={false}
         />
         <Tooltip content={<CustomTooltip />} />
-        <Area
-          type="monotone"
+        <Bar
           dataKey="calories"
-          stroke="#f97316"
-          strokeWidth={2}
-          fill="url(#caloriesGradient)"
-          dot={false}
+          fill="#f97316"
+          radius={[4, 4, 0, 0]}
         />
-      </AreaChart>
+      </BarChart>
     </ResponsiveContainer>
   );
 }
