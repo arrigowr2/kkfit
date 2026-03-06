@@ -84,8 +84,8 @@ export default function HeartRateChart({ data }: HeartRateChartProps) {
         <AreaChart data={last14} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
           <defs>
             <linearGradient id="heartGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.6} />
+              <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -109,10 +109,10 @@ export default function HeartRateChart({ data }: HeartRateChartProps) {
             type="monotone"
             dataKey="avg"
             stroke="#ef4444"
-            strokeWidth={2}
+            strokeWidth={3}
             fill="url(#heartGradient)"
-            dot={last14.length <= 7}
-            activeDot={{ r: 4, fill: '#ef4444' }}
+            dot={{ r: 4, fill: '#ef4444', strokeWidth: 2, stroke: '#fff' }}
+            activeDot={{ r: 6, fill: '#ef4444', strokeWidth: 2, stroke: '#fff' }}
           />
           {/* Only show min/max lines if we have detailed data (multiple readings per day) */}
           {hasDetailedData && (
