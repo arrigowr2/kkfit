@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import LoginPage from "@/components/LoginPage";
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   let session = null;
   
