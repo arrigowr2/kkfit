@@ -214,7 +214,17 @@ async function getAllAvailableDataSources(accessToken: string): Promise<string[]
     }
     
     const data = await response.json();
-    const allSources = (data.dataSource || []).map((ds: any) => ds.dataSourceId);
+    
+    // DEBUG: Log the full structure of the response
+    console.log('[DataSources] Raw API response structure:', JSON.stringify(data, null, 2).slice(0, 2000));
+    console.log('[DataSources] Keys in response:', Object.keys(data));
+    
+    // Try different possible structures
+    const rawSources = data.dataSource || data.dataSources || data.items || data || [];
+    console.log('[DataSources] Raw sources array length:', rawSources.length);
+    console.log('[DataSources] First raw source:', rawSources[0]);
+    
+    const allSources = rawSources.map((ds: any) => ds?.dataSourceId || ds?.name || ds?.id || ds);
     
     console.log('[DataSources] All available data sources count:', allSources.length);
     console.log('[DataSources] ALL sources (first 10):', allSources.slice(0, 10));
