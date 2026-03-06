@@ -337,6 +337,10 @@ export async function getHeartRateData(
     startTime.setDate(startTime.getDate() - days);
   }
 
+  console.log('[HeartRate] Query time range - startTime:', startTime.toISOString(), 'endTime:', endTime.toISOString());
+  console.log('[HeartRate] Query time range (ms):', startTime.getTime(), 'to', endTime.getTime());
+  console.log('[HeartRate] Query time range (ns):', startTime.getTime() * 1000000, 'to', endTime.getTime() * 1000000);
+
   // If we have available sources from Google Fit, use those first
   let dataSourceIds: string[];
   if (availableSources.length > 0) {
