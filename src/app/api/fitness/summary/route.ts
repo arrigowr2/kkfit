@@ -103,7 +103,7 @@ export async function GET(request: Request) {
         await Promise.all([
           safeGetData(() => getStepsData(session.accessToken!, 90), "getStepsData"),
           safeGetData(() => getCaloriesData(session.accessToken!, 90), "getCaloriesData"),
-          safeGetData(() => getHeartRateData(session.accessToken!, 90), "getHeartRateData"),
+          safeGetData(() => getHeartRateData(session.accessToken!, 7), "getHeartRateData"),
           safeGetData(() => getSleepData(session.accessToken!, 90), "getSleepData"),
           safeGetData(() => getWeightData(session.accessToken!, 90), "getWeightData"),
           safeGetData(() => getActivityData(session.accessToken!, 90), "getActivityData"),
@@ -144,7 +144,7 @@ export async function GET(request: Request) {
           safeGetData(() => getTodaySummary(session.accessToken!), "getTodaySummary"),
           safeGetData(() => getStepsData(session.accessToken!, 30), "getStepsData"),
           safeGetData(() => getCaloriesData(session.accessToken!, 30), "getCaloriesData"),
-          safeGetData(() => getHeartRateData(session.accessToken!, 30), "getHeartRateData"),
+          safeGetData(() => getHeartRateData(session.accessToken!, 7), "getHeartRateData"),
           safeGetData(() => getSleepData(session.accessToken!, 30), "getSleepData"),
           safeGetData(() => getWeightData(session.accessToken!, 90), "getWeightData"),
           safeGetData(() => getActivityData(session.accessToken!, 30), "getActivityData"),
