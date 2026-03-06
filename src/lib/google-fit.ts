@@ -197,6 +197,8 @@ export async function getHeartRateData(
   days: number = 30,
   specificDate?: string
 ): Promise<{ data: HeartRateData[]; debug: any }> {
+  console.log("[HeartRate] getHeartRateData called with days:", days, "specificDate:", specificDate);
+  
   let startTime: Date;
   let endTime: Date;
   
@@ -214,10 +216,17 @@ export async function getHeartRateData(
   // For heart rate, we need to use the datasets API to get raw data points
   // The aggregate API doesn't return heart rate data points for most users
   const dataSourceIds = [
+    // Most common data sources
     "derived:com.google.heart_rate.bpm:com.google.android.gms:merge_heart_rate_bpm",
+    "derived:com.google.heart_rate.bpm:com.google:merged",
+    "derived:com.google.heart_rate.bpm:com.google.android.gms:estimated",
+    // Raw data sources (from devices)
     "raw:com.google.heart_rate.bpm:Pixel Watch",
     "raw:com.google.heart_rate.bpm:garmin",
-    "derived:com.google.heart_rate.bpm:com.google:merged",
+    "raw:com.google.heart_rate.bpm:wearos",
+    // Additional derived sources
+    "derived:com.google.heart_rate.bpm:com.google.android.gms:raw",
+    "derived:com.google.heart_rate.bpm:com.google.android.gms:from_phones",
   ];
   
   let allPoints: any[] = [];
@@ -259,6 +268,7 @@ export async function getHeartRateData(
   
   console.log("[HeartRate] Used dataSource:", usedDataSource);
   console.log("[HeartRate] Total points from all sources:", allPoints.length);
+  console.log("[HeartRate] Datasets API worked:", datasetsApiWorked);
   
   // If datasets API worked and has data, use it
   if (datasetsApiWorked && allPoints.length > 0) {
@@ -340,9 +350,18 @@ async function getHeartRateDataWithSummary(
   // Try heart_rate.summary which provides min/max/avg values
   // Try multiple data sources as fallbacks
   const dataSourceIds = [
+    // Summary sources
     "derived:com.google.heart_rate.summary:com.google.android.gms:aggregated",
+    // BPM sources
     "derived:com.google.heart_rate.bpm:com.google.android.gms:aggregated",
+    // Raw/estimated
+    "derived:com.google.heart_rate.bpm:com.google.android.gms:raw",
+    "derived:com.google.heart_rate.bpm:com.google.android.gms:estimated",
+    // From phones
+    "derived:com.google.heart_rate.bpm:com.google.android.gms:from_phones",
+    // Legacy sources
     "derived:com.google.heart_rate.minutes:com.google.android.gms:aggregated",
+    "derived:com.google.heart_rate:com.google.android.gms:aggregated",
   ];
   
   let lastError: Error | null = null;
