@@ -24,13 +24,22 @@ export default function HeartPageClient() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("[HeartPage] Fetching heart rate data...");
     fetch("/api/fitness/summary?date=total")
-      .then((r) => r.json())
+      .then((r) => {
+        console.log("[HeartPage] Response status:", r.status);
+        return r.json();
+      })
       .then((d) => {
+        console.log("[HeartPage] Response data:", d);
+        console.log("[HeartPage] Heart rate array:", d.heartRate);
         setData(d.heartRate || []);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        console.error("[HeartPage] Error:", err);
+        setLoading(false);
+      });
   }, []);
 
   if (loading) {
