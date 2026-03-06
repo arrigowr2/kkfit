@@ -73,6 +73,7 @@ export default function CaloriesChart({ data }: CaloriesChartProps) {
           dataKey="calories"
           fill="#f97316"
           radius={[4, 4, 0, 0]}
+          maxBarSize={40}
         />
       </BarChart>
     </ResponsiveContainer>
