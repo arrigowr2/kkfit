@@ -39,7 +39,7 @@ export default function HeartPageClient() {
         // Log each day's values for debugging
         if (d.heartRate && d.heartRate.length > 0) {
           console.log("[HeartPage] Detailed heart rate data:", 
-            d.heartRate.map(day => `${day.date}: min=${day.min}, max=${day.max}, avg=${day.avg}`)
+            d.heartRate.map((day: { date: string; min: number; max: number; avg: number }) => `${day.date}: min=${day.min}, max=${day.max}, avg=${day.avg}`)
           );
         }
         setData(d.heartRate || []);
