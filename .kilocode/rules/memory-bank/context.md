@@ -64,6 +64,7 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix HeartRateChart: hide min/max lines when data only has avg (single reading per day)
 - [x] Improve HeartRateChart visibility: stronger gradient (0.6 opacity), thicker stroke (3px), always visible dots with white border
 - [x] Fix Vercel build error: add export const dynamic = 'force-dynamic' to dashboard/layout.tsx and page.tsx to fix "Route couldn't be rendered statically because it used headers" error
+- [x] Fix heart rate data: iterate through all datasets to find one with actual heart rate points (not just summary)
 
 ## Current Structure
 
@@ -171,3 +172,5 @@ export async function GET() {
 | 2026-03-05 | Fix Service Worker redirect error: add redirect follow mode and error handling
 | 2026-03-05 | Fix Activity page calendar overflow on mobile
 | 2026-03-05 | Add slide-out navigation menu for mobile with profile link
+| 2026-03-06 | Fix Vercel build error: added export const dynamic = 'force-dynamic' to fix static rendering error with headers |
+| 2026-03-06 | Fix heart rate data: iterate through all datasets to find one with actual heart rate points instead of just first dataset |
