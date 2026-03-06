@@ -221,8 +221,9 @@ async function getAllAvailableDataSources(accessToken: string): Promise<string[]
     // Group by type for easier debugging
     const types: Record<string, string[]> = {};
     for (const source of allSources) {
+      if (!source) continue;
       const match = source.match(/^(\w+):(\w+)\.(.+?):(.+)$/);
-      if (match) {
+      if (match && match[2]) {
         const type = match[2]; // e.g., heart_rate, steps, calories
         if (!types[type]) types[type] = [];
         types[type].push(source);
