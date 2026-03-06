@@ -74,6 +74,10 @@ export default function HeartRateChart({ data }: HeartRateChartProps) {
   const hasValidData = last14.some(d => d.avg > 0);
   console.log("[HeartRateChart] Has valid data:", hasValidData);
 
+  // Check if min/max are different from avg (i.e., we have multiple readings per day)
+  const hasDetailedData = last14.some(d => d.min !== d.max || d.max !== d.avg);
+  console.log("[HeartRateChart] Has detailed data (min != max):", hasDetailedData);
+
   return (
     <div className="w-full" style={{ minHeight: '200px' }}>
       <ResponsiveContainer width="100%" height={200}>
@@ -107,24 +111,30 @@ export default function HeartRateChart({ data }: HeartRateChartProps) {
             stroke="#ef4444"
             strokeWidth={2}
             fill="url(#heartGradient)"
-            dot={false}
+            dot={last14.length <= 7}
+            activeDot={{ r: 4, fill: '#ef4444' }}
           />
-          <Line
-            type="monotone"
-            dataKey="max"
-            stroke="#f97316"
-            strokeWidth={1}
-            strokeDasharray="4 4"
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="min"
-            stroke="#22c55e"
-            strokeWidth={1}
-            strokeDasharray="4 4"
-            dot={false}
-          />
+          {/* Only show min/max lines if we have detailed data (multiple readings per day) */}
+          {hasDetailedData && (
+            <>
+              <Line
+                type="monotone"
+                dataKey="max"
+                stroke="#f97316"
+                strokeWidth={1}
+                strokeDasharray="4 4"
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="min"
+                stroke="#22c55e"
+                strokeWidth={1}
+                strokeDasharray="4 4"
+                dot={false}
+              />
+            </>
+          )}
         </AreaChart>
       </ResponsiveContainer>
     </div>
