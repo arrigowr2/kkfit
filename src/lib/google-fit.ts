@@ -192,6 +192,54 @@ export async function getCaloriesData(
   return result.sort((a, b) => a.date.localeCompare(b.date));
 }
 
+// Helper function to get list of ALL available data sources for this user
+async function getAllAvailableDataSources(accessToken: string): Promise<string[]> {
+  try {
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    
+    const url = new URL(`${FITNESS_API_BASE}/dataSources`);
+    url.searchParams.set('startTime', oneDayAgo.toString());
+    url.searchParams.set('endTime', now.toString());
+    
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    
+    if (!response.ok) {
+      console.log('[DataSources] Could not get all data sources:', response.status);
+      return [];
+    }
+    
+    const data = await response.json();
+    const allSources = (data.dataSource || []).map((ds: any) => ds.dataSourceId);
+    
+    console.log('[DataSources] All available data sources count:', allSources.length);
+    
+    // Group by type for easier debugging
+    const types: Record<string, string[]> = {};
+    for (const source of allSources) {
+      const match = source.match(/^(\w+):(\w+)\.(.+?):(.+)$/);
+      if (match) {
+        const type = match[2]; // e.g., heart_rate, steps, calories
+        if (!types[type]) types[type] = [];
+        types[type].push(source);
+      }
+    }
+    console.log('[DataSources] Data types available:', Object.keys(types).join(', '));
+    for (const [type, sources] of Object.entries(types)) {
+      console.log(`[DataSources] ${type}:`, sources.join(', '));
+    }
+    
+    return allSources;
+  } catch (err) {
+    console.log('[DataSources] Error getting all data sources:', err);
+    return [];
+  }
+}
+
 // Helper function to get list of available data sources for heart rate
 async function getAvailableHeartRateDataSources(accessToken: string): Promise<string[]> {
   try {
@@ -233,7 +281,10 @@ export async function getHeartRateData(
 ): Promise<{ data: HeartRateData[]; debug: any }> {
   console.log("[HeartRate] getHeartRateData called with days:", days, "specificDate:", specificDate);
   
-  // First, try to get available data sources for this user
+  // First, get ALL available data sources to see what data the user has
+  const allSources = await getAllAvailableDataSources(accessToken);
+  
+  // Then, get heart rate specific sources
   const availableSources = await getAvailableHeartRateDataSources(accessToken);
   
   let startTime: Date;
@@ -256,7 +307,7 @@ export async function getHeartRateData(
     dataSourceIds = availableSources;
     console.log('[HeartRate] Using available sources from Google Fit:', dataSourceIds);
   } else {
-    // Fall back to default data sources
+    // Fall back to default data sources (including more device-specific sources)
     dataSourceIds = [
       // Most common data sources
       "derived:com.google.heart_rate.bpm:com.google.android.gms:merge_heart_rate_bpm",
@@ -269,6 +320,19 @@ export async function getHeartRateData(
       // Additional derived sources
       "derived:com.google.heart_rate.bpm:com.google.android.gms:raw",
       "derived:com.google.heart_rate.bpm:com.google.android.gms:from_phones",
+      // Samsung Health sources
+      "raw:com.google.heart_rate.bpm:samsung",
+      "raw:com.google.heart_rate.bpm:galaxy_watch",
+      // Xiaomi/Amazfit sources
+      "raw:com.google.heart_rate.bpm:amazfit",
+      "raw:com.google.heart_rate.bpm:xiaomi",
+      // Fitbit sources
+      "raw:com.google.heart_rate.bpm:fitbit",
+      // Generic raw
+      "raw:com.google.heart_rate.bpm:",
+      // More derived options
+      "derived:com.google.heart_rate.bpm:com.google.android.gms:rest",
+      "derived:com.google.heart_rate.bpm:com.google.android.gms:workout",
     ];
   }
   
