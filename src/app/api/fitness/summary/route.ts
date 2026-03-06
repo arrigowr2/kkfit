@@ -84,17 +84,29 @@ export async function GET(request: Request) {
     let todayData;
     let stepsData, caloriesData, heartRateData, sleepData, weightData, activityData;
 
+    // Wrap each data fetch in try-catch to prevent one failure from crashing the entire request
+    const safeGetData = async <T>(fn: () => Promise<T>, name: string): Promise<T> => {
+      try {
+        const result = await fn();
+        return result;
+      } catch (err: any) {
+        console.error(`[API Summary] Error in ${name}:`, err.message);
+        // Return appropriate default based on expected type
+        return null as any;
+      }
+    };
+
     if (isTotal) {
       // Get all data (Total) - no specific date, get maximum historical data
       // For Total, calculate sum from all historical data
       [stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
         await Promise.all([
-          getStepsData(session.accessToken, 90),
-          getCaloriesData(session.accessToken, 90),
-          getHeartRateData(session.accessToken, 90),
-          getSleepData(session.accessToken, 90),
-          getWeightData(session.accessToken, 90),
-          getActivityData(session.accessToken, 90),
+          safeGetData(() => getStepsData(session.accessToken!, 90), "getStepsData"),
+          safeGetData(() => getCaloriesData(session.accessToken!, 90), "getCaloriesData"),
+          safeGetData(() => getHeartRateData(session.accessToken!, 90), "getHeartRateData"),
+          safeGetData(() => getSleepData(session.accessToken!, 90), "getSleepData"),
+          safeGetData(() => getWeightData(session.accessToken!, 90), "getWeightData"),
+          safeGetData(() => getActivityData(session.accessToken!, 90), "getActivityData"),
         ]);
       
       console.log("[API Summary] Total mode - Raw data counts:", {
@@ -129,13 +141,13 @@ export async function GET(request: Request) {
       
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
         await Promise.all([
-          getTodaySummary(session.accessToken),
-          getStepsData(session.accessToken, 30),
-          getCaloriesData(session.accessToken, 30),
-          getHeartRateData(session.accessToken, 30),
-          getSleepData(session.accessToken, 30),
-          getWeightData(session.accessToken, 90),
-          getActivityData(session.accessToken, 30),
+          safeGetData(() => getTodaySummary(session.accessToken!), "getTodaySummary"),
+          safeGetData(() => getStepsData(session.accessToken!, 30), "getStepsData"),
+          safeGetData(() => getCaloriesData(session.accessToken!, 30), "getCaloriesData"),
+          safeGetData(() => getHeartRateData(session.accessToken!, 30), "getHeartRateData"),
+          safeGetData(() => getSleepData(session.accessToken!, 30), "getSleepData"),
+          safeGetData(() => getWeightData(session.accessToken!, 90), "getWeightData"),
+          safeGetData(() => getActivityData(session.accessToken!, 30), "getActivityData"),
         ]);
       
       console.log("[API Summary] Today mode - Raw steps data count:", stepsData?.length || 0);
@@ -182,12 +194,12 @@ export async function GET(request: Request) {
             activeMinutes: 0,
             distance: 0
           }),
-          getStepsData(session.accessToken, numDays, lastDate),
-          getCaloriesData(session.accessToken, numDays, lastDate),
-          getHeartRateData(session.accessToken, numDays, lastDate),
-          getSleepData(session.accessToken, numDays, lastDate),
-          getWeightData(session.accessToken, 90, lastDate),
-          getActivityData(session.accessToken, numDays, lastDate),
+          safeGetData(() => getStepsData(session.accessToken!, numDays, lastDate), "getStepsData"),
+          safeGetData(() => getCaloriesData(session.accessToken!, numDays, lastDate), "getCaloriesData"),
+          safeGetData(() => getHeartRateData(session.accessToken!, numDays, lastDate), "getHeartRateData"),
+          safeGetData(() => getSleepData(session.accessToken!, numDays, lastDate), "getSleepData"),
+          safeGetData(() => getWeightData(session.accessToken!, 90, lastDate), "getWeightData"),
+          safeGetData(() => getActivityData(session.accessToken!, numDays, lastDate), "getActivityData"),
         ]);
       
       // Filter to only include the exact dates selected
@@ -216,13 +228,13 @@ export async function GET(request: Request) {
       // Get data for a specific date (custom date or single date)
       [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
         await Promise.all([
-          getDailyData(session.accessToken, dateStr),
-          getStepsData(session.accessToken, 1, dateStr),
-          getCaloriesData(session.accessToken, 1, dateStr),
-          getHeartRateData(session.accessToken, 1, dateStr),
-          getSleepData(session.accessToken, 1, dateStr),
-          getWeightData(session.accessToken, 90, dateStr),
-          getActivityData(session.accessToken, 1, dateStr),
+          safeGetData(() => getDailyData(session.accessToken!, dateStr), "getDailyData"),
+          safeGetData(() => getStepsData(session.accessToken!, 1, dateStr), "getStepsData"),
+          safeGetData(() => getCaloriesData(session.accessToken!, 1, dateStr), "getCaloriesData"),
+          safeGetData(() => getHeartRateData(session.accessToken!, 1, dateStr), "getHeartRateData"),
+          safeGetData(() => getSleepData(session.accessToken!, 1, dateStr), "getSleepData"),
+          safeGetData(() => getWeightData(session.accessToken!, 90, dateStr), "getWeightData"),
+          safeGetData(() => getActivityData(session.accessToken!, 1, dateStr), "getActivityData"),
         ]);
     }
 
@@ -235,20 +247,24 @@ export async function GET(request: Request) {
       sleepData: sleepData
     });
     
+    // Handle null cases from safeGetData (when APIs fail)
+    const safeData = <T>(data: T | null, defaultVal: T): T => data ?? defaultVal;
+    
     // Extract heartRate data and debug info
-    const heartRateResult = heartRateData as { data?: any[]; debug?: any };
-    const heartRateArray = heartRateResult?.data || heartRateData;
-    const heartRateDebug = heartRateResult?.debug;
+    // Handle null case from safeGetData
+    const heartRateResult = (heartRateData as { data?: any[]; debug?: any }) || { data: [], debug: {} };
+    const heartRateArray = heartRateResult?.data || heartRateData || [];
+    const heartRateDebug = heartRateResult?.debug || {};
     
     const response = {
       targetDate: dateStr,
-      today: todayData,
-      steps: stepsData,
-      calories: caloriesData,
+      today: safeData(todayData, { steps: 0, calories: 0, activeMinutes: 0, distance: 0 }),
+      steps: safeData(stepsData, []),
+      calories: safeData(caloriesData, []),
       heartRate: heartRateArray,
-      sleep: sleepData,
-      weight: weightData,
-      activity: activityData,
+      sleep: safeData(sleepData, []),
+      weight: safeData(weightData, []),
+      activity: safeData(activityData, []),
       _debug: {
         isTotal,
         isToday,

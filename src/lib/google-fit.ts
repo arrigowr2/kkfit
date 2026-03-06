@@ -338,20 +338,60 @@ async function getHeartRateDataWithSummary(
   }
 
   // Try heart_rate.summary which provides min/max/avg values
-  const body = {
-    aggregateBy: [
-      {
-        dataSourceId: "derived:com.google.heart_rate.summary:com.google.android.gms:aggregated",
-      },
-    ],
-    bucketByTime: { durationMillis: 86400000 },
-    startTimeMillis: startTime.getTime(),
-    endTimeMillis: endTime.getTime(),
-  };
+  // Try multiple data sources as fallbacks
+  const dataSourceIds = [
+    "derived:com.google.heart_rate.summary:com.google.android.gms:aggregated",
+    "derived:com.google.heart_rate.bpm:com.google.android.gms:aggregated",
+    "derived:com.google.heart_rate.minutes:com.google.android.gms:aggregated",
+  ];
+  
+  let lastError: Error | null = null;
+  let data: any = null;
+  let usedSummaryDataSource: string | null = null;
+  
+  for (const summaryDataSource of dataSourceIds) {
+    try {
+      const body = {
+        aggregateBy: [
+          {
+            dataSourceId: summaryDataSource,
+          },
+        ],
+        bucketByTime: { durationMillis: 86400000 },
+        startTimeMillis: startTime.getTime(),
+        endTimeMillis: endTime.getTime(),
+      };
 
-  console.log("[HeartRate Summary] Requesting with body:", JSON.stringify(body, null, 2));
+      console.log("[HeartRate Summary] Trying dataSource:", summaryDataSource);
 
-  const data = await fetchFitData(accessToken, "/dataset:aggregate", body);
+      data = await fetchFitData(accessToken, "/dataset:aggregate", body);
+      usedSummaryDataSource = summaryDataSource;
+      console.log("[HeartRate Summary] ✓ Success with dataSource:", summaryDataSource);
+      break;
+    } catch (err: any) {
+      console.log("[HeartRate Summary] Error with", summaryDataSource, ":", err.message);
+      lastError = err;
+      // If it's a 403/404, try next data source
+      if (err.message?.includes("403") || err.message?.includes("404") || err.message?.includes("not found") || err.message?.includes("not readable")) {
+        continue;
+      }
+      // For other errors, throw immediately
+      throw err;
+    }
+  }
+  
+  // If no data source worked, return empty array with debug info
+  if (!data) {
+    console.log("[HeartRate Summary] All data sources failed, returning empty array");
+    return { 
+      data: [], 
+      debug: { 
+        method: "aggregate_summary", 
+        error: lastError?.message || "All data sources failed",
+        triedDataSources: dataSourceIds 
+      } 
+    };
+  }
 
   console.log("[HeartRate Summary] Raw API response:", JSON.stringify(data, null, 2));
 
@@ -421,8 +461,8 @@ async function getHeartRateDataWithSummary(
 
   return { data: result.sort((a, b) => a.date.localeCompare(b.date)), debug: { 
     method: "aggregate_summary", 
-    usedDataSource: data.bucket?.[0]?.dataset?.[0]?.dataSourceId || "unknown",
-    rawResponse: JSON.stringify(data).substring(0, 1000) 
+    usedDataSource: usedSummaryDataSource || data.bucket?.[0]?.dataset?.[0]?.dataSourceId || "unknown",
+    rawResponse: data ? JSON.stringify(data).substring(0, 1000) : "no data"
   } };
 }
 
