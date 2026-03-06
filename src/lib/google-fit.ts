@@ -217,6 +217,15 @@ async function getAllAvailableDataSources(accessToken: string): Promise<string[]
     const allSources = (data.dataSource || []).map((ds: any) => ds.dataSourceId);
     
     console.log('[DataSources] All available data sources count:', allSources.length);
+    console.log('[DataSources] ALL sources (first 10):', allSources.slice(0, 10));
+    
+    // Debug: print ALL sources to see what we're getting
+    if (allSources.length > 0) {
+      console.log('[DataSources] Full list of data source IDs:');
+      allSources.forEach((src: string, i: number) => {
+        console.log(`  ${i + 1}. ${src}`);
+      });
+    }
     
     // Group by type for easier debugging
     const types: Record<string, string[]> = {};
@@ -270,7 +279,16 @@ async function getAvailableHeartRateDataSources(accessToken: string): Promise<st
     }
     
     const data = await response.json();
-    const heartRateSources = (data.dataSource || []).filter((ds: any) => 
+    console.log('[HeartRate] Raw dataSources response, count:', (data.dataSource || []).length);
+    
+    // Debug: show first few data source IDs to see format
+    const allDs = data.dataSource || [];
+    console.log('[HeartRate] First 5 dataSources:');
+    allDs.slice(0, 5).forEach((ds: any, i: number) => {
+      console.log(`  ${i + 1}. ${ds.dataSourceId}`);
+    });
+    
+    const heartRateSources = allDs.filter((ds: any) => 
       ds.dataSourceId?.toLowerCase().includes('heart_rate')
     );
     
