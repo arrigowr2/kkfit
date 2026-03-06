@@ -332,7 +332,7 @@ async function getHeartRateDataAggregate(
   const body = {
     aggregateBy: [
       {
-        dataTypeName: "com.google.heart_rate.bpm",
+        dataSourceId: "derived:com.google.heart_rate.bpm:com.google.android.gms:merge_heart_rate_bpm",
       },
     ],
     bucketByTime: { durationMillis: 86400000 },
@@ -376,7 +376,11 @@ async function getHeartRateDataAggregate(
     }
   }
 
-  return { data: result.sort((a, b) => a.date.localeCompare(b.date)), debug: { rawResponse: JSON.stringify(data).substring(0, 500) } };
+  return { data: result.sort((a, b) => a.date.localeCompare(b.date)), debug: { 
+    method: "aggregate", 
+    usedDataSource: data.bucket?.[0]?.dataset?.[0]?.dataSourceId || "unknown",
+    rawResponse: JSON.stringify(data).substring(0, 500) 
+  } };
 }
 
 // Helper function to fetch sleep sessions from Google Fit Sessions API
