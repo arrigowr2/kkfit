@@ -380,6 +380,7 @@ export async function getHeartRateData(
   for (const dataSourceId of dataSourceIds) {
     try {
       const url = new URL(`${FITNESS_API_BASE}/datasets/${dataSourceId}-${startTime.getTime() * 1000000}-${endTime.getTime() * 1000000}`);
+      console.log("[HeartRate] Full datasets URL:", url.toString());
       console.log("[HeartRate] Trying datasets API with:", dataSourceId);
       
       const response = await fetch(url.toString(), {
@@ -389,7 +390,8 @@ export async function getHeartRateData(
       });
       
       if (!response.ok) {
-        console.log("[HeartRate] DataSource", dataSourceId, "failed:", response.status);
+        const errorText = await response.text();
+        console.log("[HeartRate] DataSource", dataSourceId, "failed:", response.status, errorText);
         continue;
       }
       
