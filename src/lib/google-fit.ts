@@ -379,7 +379,7 @@ export async function getHeartRateData(
   // Try datasets API for each data source
   for (const dataSourceId of dataSourceIds) {
     try {
-      const url = new URL(`${FITNESS_API_BASE}/datasets/${dataSourceId}-${startTime.getTime()}-${endTime.getTime()}`);
+      const url = new URL(`${FITNESS_API_BASE}/datasets/${dataSourceId}-${startTime.getTime() * 1000000}-${endTime.getTime() * 1000000}`);
       console.log("[HeartRate] Trying datasets API with:", dataSourceId);
       
       const response = await fetch(url.toString(), {
