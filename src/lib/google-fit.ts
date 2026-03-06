@@ -224,6 +224,8 @@ export async function getHeartRateData(
 
   const data = await fetchFitData(accessToken, "/dataset:aggregate", body);
 
+  console.log("[HeartRate] Raw API response:", JSON.stringify(data, null, 2));
+
   const result: HeartRateData[] = [];
   if (data.bucket) {
     for (const bucket of data.bucket) {
@@ -238,10 +240,15 @@ export async function getHeartRateData(
       let avg = 0,
         min = 0,
         max = 0;
+      
+      console.log("[HeartRate] Bucket date:", date, "points:", bucket.dataset?.[0]?.point?.length);
+      
       if (bucket.dataset?.[0]?.point?.length > 0) {
         const values = bucket.dataset[0].point.map(
           (p: { value: { fpVal: number }[] }) => p.value?.[0]?.fpVal || 0
         );
+        console.log("[HeartRate] Values for", date, ":", values);
+        
         avg = Math.round(values.reduce((a: number, b: number) => a + b, 0) / values.length);
         min = Math.round(Math.min(...values));
         max = Math.round(Math.max(...values));
