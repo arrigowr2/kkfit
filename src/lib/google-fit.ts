@@ -220,6 +220,7 @@ async function getAllAvailableDataSources(accessToken: string): Promise<string[]
     
     // Group by type for easier debugging
     const types: Record<string, string[]> = {};
+    let unmatchedCount = 0;
     for (const source of allSources) {
       if (!source) continue;
       const match = source.match(/^(\w+):(\w+)\.(.+?):(.+)$/);
@@ -227,11 +228,17 @@ async function getAllAvailableDataSources(accessToken: string): Promise<string[]
         const type = match[2]; // e.g., heart_rate, steps, calories
         if (!types[type]) types[type] = [];
         types[type].push(source);
+      } else {
+        unmatchedCount++;
+        if (unmatchedCount <= 5) {
+          console.log('[DataSources] Unmatched source:', source);
+        }
       }
     }
-    console.log('[DataSources] Data types available:', Object.keys(types).join(', '));
+    console.log('[DataSources] Data types found (matched):', Object.keys(types).join(', ') || 'none');
+    console.log('[DataSources] Unmatched sources count:', unmatchedCount);
     for (const [type, sources] of Object.entries(types)) {
-      console.log(`[DataSources] ${type}:`, sources.join(', '));
+      console.log(`[DataSources] ${type}:`, sources.slice(0, 3).join(', '), sources.length > 3 ? '...' : '');
     }
     
     return allSources;
