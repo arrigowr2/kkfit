@@ -33,8 +33,8 @@ export default function HeartPageClient() {
       .then((d) => {
         console.log("[HeartPage] Response data:", d);
         console.log("[HeartPage] Heart rate array:", d.heartRate);
-        if (d.heartRateDebug) {
-          console.log("[HeartPage] Debug info:", JSON.stringify(d.heartRateDebug, null, 2));
+        if (d._debug?.heartRateDebug) {
+          console.log("[HeartPage] Debug info:", JSON.stringify(d._debug.heartRateDebug, null, 2));
         } else {
           console.log("[HeartPage] No debug info available");
         }
