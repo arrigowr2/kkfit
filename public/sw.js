@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kkfit-v2';
+const CACHE_NAME = 'kkfit-v3';
 const STATIC_ASSETS = [
   '/',
   '/dashboard',
@@ -38,7 +38,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - serve from cache or network
+// Fetch event - serve from network first, fallback to cache
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
@@ -49,33 +49,31 @@ self.addEventListener('fetch', (event) => {
   // Skip Next.js internal requests
   if (event.request.url.includes('_next')) return;
 
+  // Skip service worker itself
+  if (event.request.url.includes('/sw.js')) return;
+
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Return cached version or fetch from network
-      return (
-        response ||
-        fetch(event.request, { redirect: 'follow' }).then((fetchResponse) => {
-          // Don't cache non-successful responses
-          if (!fetchResponse || fetchResponse.status !== 200) {
-            return fetchResponse;
-          }
-
-          // Clone the response
-          const responseToCache = fetchResponse.clone();
-
-          // Cache the fetched response
+    fetch(event.request)
+      .then((response) => {
+        // Clone and cache successful responses
+        if (response && response.status === 200) {
+          const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
-
-          return fetchResponse;
-        }).catch((error) => {
-          // If fetch fails (e.g., network error, redirect), try to return cached version
-          console.error('Fetch failed:', error);
-          return response;
-        })
-      );
-    })
+        }
+        return response;
+      })
+      .catch(() => {
+        // If network fails, try cache
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // Return offline page if available
+          return caches.match('/');
+        });
+      })
   );
 });
 
