@@ -307,7 +307,7 @@ export async function getHeartRateData(
     }
   }
   
-  return { data: result.sort((a, b) => a.date.localeCompare(b.date)), debug: { dailyValues, method: "datasets" } };
+  return { data: result.sort((a, b) => a.date.localeCompare(b.date)), debug: { dailyValues, method: "datasets", usedDataSource } };
 }
 
 // Fallback to aggregate API
