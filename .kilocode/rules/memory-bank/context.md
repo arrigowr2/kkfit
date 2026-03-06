@@ -61,6 +61,8 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix Activity page calendar overflow on mobile: adjust width calculation to prevent overflow
 - [x] Fix Service Worker page load issues: changed to network-first strategy with v3 cache
 - [x] Fix achievements page hanging: added error handling, error state, and prevent infinite loops in useGamification hook
+- [x] Fix HeartRateChart: hide min/max lines when data only has avg (single reading per day)
+- [x] Improve HeartRateChart visibility: stronger gradient (0.6 opacity), thicker stroke (3px), always visible dots with white border
 
 ## Current Structure
 
