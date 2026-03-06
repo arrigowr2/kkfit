@@ -383,13 +383,14 @@ export async function getHeartRateData(
   // Try datasets API for each data source
   for (const dataSourceId of dataSourceIds) {
     try {
-      // For the dataset URL, we need to handle special characters in dataSourceId
-      // Google Fit expects: datasets/{dataSourceId}-{startTime}-{endTime}
+      // For the dataset URL, we need the correct Google Fit API format:
+      // /dataSources/{dataSourceId}/datasets/{startTime}-{endTime}
       // The dataSourceId can contain colons and spaces which need encoding
       const encodedDataSourceId = dataSourceId
         .replace(/:/g, '%3A')
         .replace(/ /g, '%20');
-      const url = new URL(`${FITNESS_API_BASE}/datasets/${encodedDataSourceId}-${startTime.getTime() * 1000000}-${endTime.getTime() * 1000000}`);
+      const datasetId = `${startTime.getTime() * 1000000}-${endTime.getTime() * 1000000}`;
+      const url = new URL(`${FITNESS_API_BASE}/dataSources/${encodedDataSourceId}/datasets/${datasetId}`);
       console.log("[HeartRate] Full datasets URL:", url.toString());
       console.log("[HeartRate] Trying datasets API with:", dataSourceId);
       
