@@ -24,7 +24,7 @@ export default function HeartPageClient() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/fitness/summary")
+    fetch("/api/fitness/summary?date=total")
       .then((r) => r.json())
       .then((d) => {
         setData(d.heartRate || []);
