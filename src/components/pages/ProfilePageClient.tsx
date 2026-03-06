@@ -12,27 +12,33 @@ interface ProfileData {
 }
 
 export default function ProfilePageClient() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [profileData, setProfileData] = useState<ProfileData>({
     height: 170, // Default height in cm (user mentioned 1.70m)
   });
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Load profile data from localStorage
   useEffect(() => {
-    const savedData = localStorage.getItem("kkfit_profile");
-    if (savedData) {
-      setProfileData(JSON.parse(savedData));
-    }
-    // Set last sync time from session storage or default
-    const syncTime = sessionStorage.getItem("kkfit_last_sync");
-    if (syncTime) {
-      setLastSyncTime(syncTime);
-    } else {
-      // Default to now if no sync recorded
-      setLastSyncTime(new Date().toISOString());
+    try {
+      const savedData = localStorage.getItem("kkfit_profile");
+      if (savedData) {
+        setProfileData(JSON.parse(savedData));
+      }
+      // Set last sync time from session storage or default
+      const syncTime = sessionStorage.getItem("kkfit_last_sync");
+      if (syncTime) {
+        setLastSyncTime(syncTime);
+      } else {
+        // Default to now if no sync recorded
+        setLastSyncTime(new Date().toISOString());
+      }
+    } catch (err) {
+      console.error("Error loading profile data:", err);
+      setError("Erro ao carregar dados do perfil");
     }
     setLoading(false);
   }, []);
@@ -68,10 +74,24 @@ export default function ProfilePageClient() {
     return { label: "Obesidade", color: "text-red-400", bg: "bg-red-500/20" };
   };
 
-  if (loading) {
+  if (loading || status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="text-red-400 text-lg">{error}</div>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }

@@ -98,6 +98,7 @@ export default function DashboardNav({ user }: DashboardNavProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  scroll={false}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     pathname === item.href
                       ? "bg-blue-500/20 text-blue-400"
@@ -113,7 +114,7 @@ export default function DashboardNav({ user }: DashboardNavProps) {
             {/* User menu - Desktop */}
             <div className="hidden md:flex items-center gap-3">
               {/* User avatar as link to profile */}
-              <Link href="/dashboard/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <Link href="/dashboard/profile" scroll={false} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                 {user?.image ? (
                   <Image
                     src={user.image}
@@ -143,7 +144,7 @@ export default function DashboardNav({ user }: DashboardNavProps) {
 
             {/* Mobile user button - just avatar */}
             <div className="flex md:hidden items-center gap-2">
-              <Link href="/dashboard/profile">
+              <Link href="/dashboard/profile" scroll={false}>
                 {user?.image ? (
                   <Image
                     src={user.image}
@@ -184,7 +185,7 @@ export default function DashboardNav({ user }: DashboardNavProps) {
         >
           {/* User info in menu */}
           <div className="p-4 border-b border-slate-800">
-            <Link href="/dashboard/profile" className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/dashboard/profile" scroll={false} className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
               {user?.image ? (
                 <Image
                   src={user.image}
@@ -212,6 +213,8 @@ export default function DashboardNav({ user }: DashboardNavProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                scroll={false}
+                onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                   pathname === item.href
                     ? "bg-blue-500/20 text-blue-400"
