@@ -220,6 +220,7 @@ export async function getHeartRateData(
   ];
   
   let allPoints: any[] = [];
+  let usedDataSource: string | null = null;
   
   for (const dataSourceId of dataSourceIds) {
     const url = new URL(`${FITNESS_API_BASE}/datasets/${dataSourceId}-${startTime.getTime()}-${endTime.getTime()}`);
@@ -242,9 +243,14 @@ export async function getHeartRateData(
     
     if (data.point && data.point.length > 0) {
       allPoints = allPoints.concat(data.point);
+      if (!usedDataSource) {
+        usedDataSource = dataSourceId;
+        console.log("[HeartRate] ✓ Using dataSource:", dataSourceId);
+      }
     }
   }
   
+  console.log("[HeartRate] Used dataSource:", usedDataSource);
   console.log("[HeartRate] Total points from all sources:", allPoints.length);
   
   // If no data from datasets API, try aggregate API
