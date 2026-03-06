@@ -59,6 +59,7 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix Profile page click: add scroll={false} to navigation links, add loading states and error handling
 - [x] Remove PWA install button from navigation (no longer needed)
 - [x] Fix Activity page calendar overflow on mobile: adjust width calculation to prevent overflow
+- [x] Fix Service Worker page load issues: changed to network-first strategy with v3 cache
 
 ## Current Structure
 
