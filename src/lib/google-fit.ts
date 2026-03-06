@@ -224,7 +224,7 @@ async function getAllAvailableDataSources(accessToken: string): Promise<string[]
     console.log('[DataSources] Raw sources array length:', rawSources.length);
     console.log('[DataSources] First raw source:', rawSources[0]);
     
-    const allSources = rawSources.map((ds: any) => ds?.dataSourceId || ds?.name || ds?.id || ds);
+    const allSources = rawSources.map((ds: any) => ds?.dataStreamId || ds?.dataSourceId || ds?.name || ds?.id || ds);
     
     console.log('[DataSources] All available data sources count:', allSources.length);
     console.log('[DataSources] ALL sources (first 10):', allSources.slice(0, 10));
@@ -295,15 +295,15 @@ async function getAvailableHeartRateDataSources(accessToken: string): Promise<st
     const allDs = data.dataSource || [];
     console.log('[HeartRate] First 5 dataSources:');
     allDs.slice(0, 5).forEach((ds: any, i: number) => {
-      console.log(`  ${i + 1}. ${ds.dataSourceId}`);
+      console.log(`  ${i + 1}. ${ds.dataStreamId || ds.dataSourceId}`);
     });
     
     const heartRateSources = allDs.filter((ds: any) => 
-      ds.dataSourceId?.toLowerCase().includes('heart_rate')
+      (ds.dataStreamId || ds.dataSourceId)?.toLowerCase().includes('heart_rate')
     );
     
-    console.log('[HeartRate] Available heart rate data sources:', heartRateSources.map((ds: any) => ds.dataSourceId));
-    return heartRateSources.map((ds: any) => ds.dataSourceId);
+    console.log('[HeartRate] Available heart rate data sources:', heartRateSources.map((ds: any) => ds.dataStreamId || ds.dataSourceId));
+    return heartRateSources.map((ds: any) => ds.dataStreamId || ds.dataSourceId);
   } catch (err) {
     console.log('[HeartRate] Error getting data sources:', err);
     return [];
