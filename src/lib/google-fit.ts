@@ -358,13 +358,39 @@ async function getHeartRateDataAggregate(
         min = 0,
         max = 0;
       
-      console.log("[HeartRate Aggregate] Bucket date:", date, "points:", bucket.dataset?.[0]?.point?.length);
+      console.log("[HeartRate Aggregate] Bucket date:", date, "datasets:", bucket.dataset?.length);
       
-      if (bucket.dataset?.[0]?.point?.length > 0) {
-        const values = bucket.dataset[0].point.map(
+      // Find the dataset with actual heart rate points (not just summary)
+      // Look for merge_heart_rate_bpm first, then aggregated
+      let foundDataset = null;
+      let foundDataSourceId = "unknown";
+      
+      if (bucket.dataset && bucket.dataset.length > 0) {
+        // First try to find merge_heart_rate_bpm dataset with points
+        for (const ds of bucket.dataset) {
+          if (ds.dataSourceId?.includes("merge_heart_rate_bpm") && ds.point?.length > 0) {
+            foundDataset = ds;
+            foundDataSourceId = ds.dataSourceId;
+            break;
+          }
+        }
+        // If not found, try any dataset with points
+        if (!foundDataset) {
+          for (const ds of bucket.dataset) {
+            if (ds.point?.length > 0) {
+              foundDataset = ds;
+              foundDataSourceId = ds.dataSourceId;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (foundDataset?.point?.length > 0) {
+        const values = foundDataset.point.map(
           (p: { value: { fpVal: number }[] }) => p.value?.[0]?.fpVal || 0
         );
-        console.log("[HeartRate Aggregate] Values for", date, ":", values);
+        console.log("[HeartRate Aggregate] Values for", date, ":", values, "from", foundDataSourceId);
         
         avg = Math.round(values.reduce((a: number, b: number) => a + b, 0) / values.length);
         min = Math.round(Math.min(...values));

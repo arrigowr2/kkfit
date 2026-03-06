@@ -63,6 +63,7 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix achievements page hanging: added error handling, error state, and prevent infinite loops in useGamification hook
 - [x] Fix HeartRateChart: hide min/max lines when data only has avg (single reading per day)
 - [x] Improve HeartRateChart visibility: stronger gradient (0.6 opacity), thicker stroke (3px), always visible dots with white border
+- [x] Fix Vercel build error: add export const dynamic = 'force-dynamic' to dashboard/layout.tsx and page.tsx to fix "Route couldn't be rendered statically because it used headers" error
 
 ## Current Structure
 
