@@ -59,6 +59,7 @@ const CustomTooltip = ({
 };
 
 export default function HeartRateChart({ data }: HeartRateChartProps) {
+  console.log("[HeartRateChart] Received data:", data);
   const last14 = data.slice(-14);
 
   return (
