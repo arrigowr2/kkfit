@@ -211,6 +211,87 @@ export async function getHeartRateData(
     startTime.setDate(startTime.getDate() - days);
   }
 
+  // Use the datasets API to get raw data points instead of aggregated data
+  // This gives us access to all individual heart rate readings
+  const dataSourceId = "derived:com.google.heart_rate.bpm:com.google.android.gms:merge_heart_rate_bpm";
+  const url = new URL(`${FITNESS_API_BASE}/datasets/${dataSourceId}-${startTime.getTime()}-${endTime.getTime()}`);
+  
+  console.log("[HeartRate] Raw datasets API URL:", url.toString());
+  
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  
+  if (!response.ok) {
+    console.error("[HeartRate] Datasets API error:", response.status, await response.text());
+    // Fallback to aggregate API if datasets API fails
+    return getHeartRateDataAggregate(accessToken, days, specificDate);
+  }
+  
+  const data = await response.json();
+  console.log("[HeartRate] Raw datasets response:", JSON.stringify(data, null, 2)?.substring(0, 3000));
+  
+  // Process raw data points
+  const result: HeartRateData[] = [];
+  const dailyValues: Record<string, number[]> = {};
+  
+  if (data.point) {
+    for (const point of data.point) {
+      // Each point has startTime and endTime in nanoseconds
+      const pointTime = parseInt(point.startTimeNanos || point.endTimeNanos) / 1000000;
+      const d = new Date(pointTime);
+      const year = d.getUTCFullYear();
+      const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      const date = `${year}-${month}-${day}`;
+      
+      const value = point.value?.[0]?.fpVal || point.value?.[0]?.intVal || 0;
+      if (value > 0) {
+        if (!dailyValues[date]) {
+          dailyValues[date] = [];
+        }
+        dailyValues[date].push(value);
+      }
+    }
+  }
+  
+  // Calculate min, max, avg for each day
+  for (const date of Object.keys(dailyValues).sort()) {
+    const values = dailyValues[date];
+    if (values.length > 0) {
+      const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+      const min = Math.round(Math.min(...values));
+      const max = Math.round(Math.max(...values));
+      result.push({ date, avg, min, max });
+    }
+  }
+  
+  console.log("[HeartRate] Processed result:", result);
+  
+  return result.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Fallback to aggregate API
+async function getHeartRateDataAggregate(
+  accessToken: string,
+  days: number = 30,
+  specificDate?: string
+): Promise<HeartRateData[]> {
+  let startTime: Date;
+  let endTime: Date;
+  
+  if (specificDate) {
+    const [year, month, day] = specificDate.split('-').map(Number);
+    endTime = new Date(year, month - 1, day, 23, 59, 59);
+    startTime = new Date(year, month - 1, day - (days - 1), 0, 0, 0);
+  } else {
+    endTime = new Date();
+    startTime = new Date(endTime);
+    startTime.setDate(startTime.getDate() - days);
+  }
+
   const body = {
     aggregateBy: [
       {
@@ -224,13 +305,12 @@ export async function getHeartRateData(
 
   const data = await fetchFitData(accessToken, "/dataset:aggregate", body);
 
-  console.log("[HeartRate] Raw API response:", JSON.stringify(data, null, 2));
+  console.log("[HeartRate Aggregate] Raw API response:", JSON.stringify(data, null, 2));
 
   const result: HeartRateData[] = [];
   if (data.bucket) {
     for (const bucket of data.bucket) {
       const date = (() => {
-        // Use UTC to format date since Google Fit bucket timestamps are in UTC
         const d = new Date(parseInt(bucket.startTimeMillis));
         const year = d.getUTCFullYear();
         const month = String(d.getUTCMonth() + 1).padStart(2, '0');
@@ -241,13 +321,13 @@ export async function getHeartRateData(
         min = 0,
         max = 0;
       
-      console.log("[HeartRate] Bucket date:", date, "points:", bucket.dataset?.[0]?.point?.length);
+      console.log("[HeartRate Aggregate] Bucket date:", date, "points:", bucket.dataset?.[0]?.point?.length);
       
       if (bucket.dataset?.[0]?.point?.length > 0) {
         const values = bucket.dataset[0].point.map(
           (p: { value: { fpVal: number }[] }) => p.value?.[0]?.fpVal || 0
         );
-        console.log("[HeartRate] Values for", date, ":", values);
+        console.log("[HeartRate Aggregate] Values for", date, ":", values);
         
         avg = Math.round(values.reduce((a: number, b: number) => a + b, 0) / values.length);
         min = Math.round(Math.min(...values));
