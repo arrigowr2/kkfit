@@ -196,7 +196,7 @@ export async function getHeartRateData(
   accessToken: string,
   days: number = 30,
   specificDate?: string
-): Promise<HeartRateData[]> {
+): Promise<{ data: HeartRateData[]; debug: any }> {
   let startTime: Date;
   let endTime: Date;
   
@@ -250,7 +250,8 @@ export async function getHeartRateData(
   // If no data from datasets API, try aggregate API
   if (allPoints.length === 0) {
     console.log("[HeartRate] No data from datasets API, falling back to aggregate");
-    return getHeartRateDataAggregate(accessToken, days, specificDate);
+    const aggregateResult = await getHeartRateDataAggregate(accessToken, days, specificDate);
+    return { data: aggregateResult.data, debug: { method: "aggregate", ...aggregateResult.debug } };
   }
   
   // Process raw data points
@@ -300,7 +301,7 @@ export async function getHeartRateData(
     }
   }
   
-  return result.sort((a, b) => a.date.localeCompare(b.date));
+  return { data: result.sort((a, b) => a.date.localeCompare(b.date)), debug: { dailyValues, method: "datasets" } };
 }
 
 // Fallback to aggregate API
@@ -308,7 +309,7 @@ async function getHeartRateDataAggregate(
   accessToken: string,
   days: number = 30,
   specificDate?: string
-): Promise<HeartRateData[]> {
+): Promise<{ data: HeartRateData[]; debug: any }> {
   let startTime: Date;
   let endTime: Date;
   
@@ -369,7 +370,7 @@ async function getHeartRateDataAggregate(
     }
   }
 
-  return result.sort((a, b) => a.date.localeCompare(b.date));
+  return { data: result.sort((a, b) => a.date.localeCompare(b.date)), debug: { rawResponse: JSON.stringify(data).substring(0, 500) } };
 }
 
 // Helper function to fetch sleep sessions from Google Fit Sessions API

@@ -100,7 +100,7 @@ export async function GET(request: Request) {
       console.log("[API Summary] Total mode - Raw data counts:", {
         steps: stepsData?.length,
         calories: caloriesData?.length,
-        heartRate: heartRateData?.length,
+        heartRate: ((heartRateData as any)?.data?.length || (heartRateData as any)?.length || 0),
         sleep: sleepData?.length,
         weight: weightData?.length,
         activity: activityData?.length,
@@ -143,10 +143,12 @@ export async function GET(request: Request) {
       console.log("[API Summary] Today mode - todayData from API:", todayData);
       
       // Filter data to only show today (for client-side display consistency)
+      const hrResult = heartRateData as { data?: any[] };
+      const hrData = hrResult?.data || heartRateData;
       stepsData = (stepsData || []).filter(d => d.date === todayStr);
       caloriesData = (caloriesData || []).filter(d => d.date === todayStr);
       activityData = (activityData || []).filter(d => d.date === todayStr);
-      heartRateData = (heartRateData || []).filter(d => d.date === todayStr);
+      heartRateData = ((hrData as any) || []).filter((d: any) => d.date === todayStr);
       sleepData = (sleepData || []).filter(d => d.date === todayStr);
       
       console.log("[API Summary] Today mode - Filtered steps data count:", stepsData.length);
@@ -190,10 +192,12 @@ export async function GET(request: Request) {
       
       // Filter to only include the exact dates selected
       const dateSet = new Set(dateList);
+      const hrResultMulti = heartRateData as { data?: any[] };
+      const hrDataMulti = hrResultMulti?.data || heartRateData;
       stepsData = (stepsData || []).filter(d => dateSet.has(d.date));
       caloriesData = (caloriesData || []).filter(d => dateSet.has(d.date));
       activityData = (activityData || []).filter(d => dateSet.has(d.date));
-      heartRateData = (heartRateData || []).filter(d => dateSet.has(d.date));
+      heartRateData = ((hrDataMulti as any) || []).filter((d: any) => dateSet.has(d.date));
       sleepData = (sleepData || []).filter(d => dateSet.has(d.date));
       
       // Calculate the sum for todayData from the filtered data arrays
@@ -231,15 +235,29 @@ export async function GET(request: Request) {
       sleepData: sleepData
     });
     
+    // Extract heartRate data and debug info
+    const heartRateResult = heartRateData as { data?: any[]; debug?: any };
+    const heartRateArray = heartRateResult?.data || heartRateData;
+    const heartRateDebug = heartRateResult?.debug;
+    
     const response = {
       targetDate: dateStr,
       today: todayData,
       steps: stepsData,
       calories: caloriesData,
-      heartRate: heartRateData,
+      heartRate: heartRateArray,
       sleep: sleepData,
       weight: weightData,
       activity: activityData,
+      _debug: {
+        isTotal,
+        isToday,
+        dateStr,
+        stepsCount: stepsData?.length,
+        heartRateCount: heartRateArray?.length,
+        heartRateSample: heartRateArray?.slice(0, 3),
+        heartRateDebug
+      }
     };
     return NextResponse.json(response);
   } catch (error) {

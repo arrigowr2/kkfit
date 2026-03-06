@@ -51,14 +51,17 @@ export async function generateWeeklyReport(accessToken: string) {
   console.log(`[WeeklyExport] Generating report from ${startStr} to ${endStr}`);
 
   // Fetch all data for the past week
-  const [steps, calories, heartRate, weight, sleep, activity] = await Promise.all([
+  const [steps, calories, heartRateRaw, weight, sleep, activity] = await Promise.all([
     getStepsData(accessToken, 7).catch(e => { console.error("Steps error:", e); return []; }),
     getCaloriesData(accessToken, 7).catch(e => { console.error("Calories error:", e); return []; }),
-    getHeartRateData(accessToken, 7).catch(e => { console.error("HeartRate error:", e); return []; }),
+    getHeartRateData(accessToken, 7).catch(e => { console.error("HeartRate error:", e); return { data: [] }; }),
     getWeightData(accessToken, 7).catch(e => { console.error("Weight error:", e); return []; }),
     getSleepData(accessToken, 7).catch(e => { console.error("Sleep error:", e); return []; }),
     getActivityData(accessToken, 7).catch(e => { console.error("Activity error:", e); return []; }),
   ]);
+  
+  // Extract data from heartRate result (it now returns { data, debug })
+  const heartRate = (heartRateRaw as any)?.data || heartRateRaw || [];
 
   // Convert to the format used by export.ts
   const dateMap = new Map<string, any>();
