@@ -54,8 +54,15 @@ export default function HeartPageClient() {
     data.length > 0
       ? Math.round(data.reduce((a, b) => a + b.avg, 0) / data.length)
       : 0;
-  const minBpm = data.length > 0 ? Math.min(...data.map((d) => d.min)) : 0;
-  const maxBpm = data.length > 0 ? Math.max(...data.map((d) => d.max)) : 0;
+  
+  // Calculate global min/max from ALL readings, not just one per day
+  // This handles cases where each day has only 1 reading (min = max = avg per day)
+  const allValues = data.flatMap(d => [d.min, d.max]);
+  const globalMinBpm = allValues.length > 0 ? Math.min(...allValues) : 0;
+  const globalMaxBpm = allValues.length > 0 ? Math.max(...allValues) : 0;
+  
+  const minBpm = globalMinBpm;
+  const maxBpm = globalMaxBpm;
   const zone = getZone(avgBpm);
 
   return (
@@ -180,8 +187,20 @@ export default function HeartPageClient() {
                           {format(parseISO(day.date), "dd 'de' MMM", { locale: ptBR })}
                         </td>
                         <td className="text-right font-medium text-red-400">{day.avg}</td>
-                        <td className="text-right text-green-400">{day.min}</td>
-                        <td className="text-right text-orange-400">{day.max}</td>
+                        <td className="text-right text-green-400">
+                          {day.min === day.max ? (
+                            <span className="text-slate-500" title="1 leitura apenas">~{day.min}</span>
+                          ) : (
+                            day.min
+                          )}
+                        </td>
+                        <td className="text-right text-orange-400">
+                          {day.min === day.max ? (
+                            <span className="text-slate-500" title="1 leitura apenas">~{day.max}</span>
+                          ) : (
+                            day.max
+                          )}
+                        </td>
                         <td className="text-right">
                           <span className={`text-xs px-2 py-0.5 rounded-full border ${z.bg} ${z.color}`}>
                             {z.label}
