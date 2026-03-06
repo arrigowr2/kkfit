@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   calculateStreak,
   checkBadges,
@@ -80,40 +80,55 @@ export function useGamification(activityData: DailyActivity[] | null) {
     }
   }, []);
 
+  // Use ref to track previous activity data and prevent unnecessary recalculations
+  const prevActivityDataRef = useRef<string>('');
+
   // Calculate gamification data when activity data changes
   useEffect(() => {
     if (!activityData || activityData.length === 0) return;
 
-    const streak = calculateStreak(activityData);
-    const newBadges = checkBadges(activityData, streak.currentStreak);
+    // Create a string key from the activity data to detect changes
+    const activityDataKey = activityData.map(d => `${d.date}:${d.steps}`).join(',');
+    
+    // Skip if the data hasn't changed
+    if (prevActivityDataRef.current === activityDataKey) return;
+    prevActivityDataRef.current = activityDataKey;
 
-    setState((prev) => {
-      // Find newly earned badges
-      const prevBadgeIds = new Set(prev.earnedBadges.map((b) => b.id));
-      const newlyEarned = newBadges.filter((b) => !prevBadgeIds.has(b.id));
-      
-      // Show notification for most recent badge
-      const recentBadge = newlyEarned.length > 0 ? newlyEarned[0] : null;
+    // Wrap in try-catch to prevent any errors from breaking the app
+    try {
+      const streak = calculateStreak(activityData);
+      const newBadges = checkBadges(activityData, streak.currentStreak);
 
-      // Merge old and new badges
-      const mergedBadges = [...prev.earnedBadges];
-      newBadges.forEach((badge) => {
-        if (!prevBadgeIds.has(badge.id)) {
-          mergedBadges.push(badge);
-        }
+      setState((prev) => {
+        // Find newly earned badges
+        const prevBadgeIds = new Set(prev.earnedBadges.map((b) => b.id));
+        const newlyEarned = newBadges.filter((b) => !prevBadgeIds.has(b.id));
+        
+        // Show notification for most recent badge
+        const recentBadge = newlyEarned.length > 0 ? newlyEarned[0] : null;
+
+        // Merge old and new badges
+        const mergedBadges = [...prev.earnedBadges];
+        newBadges.forEach((badge) => {
+          if (!prevBadgeIds.has(badge.id)) {
+            mergedBadges.push(badge);
+          }
+        });
+
+        const { xp, level } = calculateXP(mergedBadges, streak);
+
+        return {
+          ...prev,
+          streak,
+          earnedBadges: mergedBadges,
+          recentBadge,
+          xp,
+          level,
+        };
       });
-
-      const { xp, level } = calculateXP(mergedBadges, streak);
-
-      return {
-        ...prev,
-        streak,
-        earnedBadges: mergedBadges,
-        recentBadge,
-        xp,
-        level,
-      };
-    });
+    } catch (error) {
+      console.error('[useGamification] Error calculating gamification data:', error);
+    }
   }, [activityData]);
 
   // Save to localStorage when badges change

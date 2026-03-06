@@ -13,8 +13,11 @@ export function BadgeNotification({ badge, onClose }: BadgeNotificationProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [progress, setProgress] = useState(100);
 
+  // Wrap in try-catch to prevent errors from breaking the page
   useEffect(() => {
-    if (badge) {
+    if (!badge) return;
+    
+    try {
       setIsVisible(true);
       setProgress(100);
       
@@ -37,7 +40,11 @@ export function BadgeNotification({ badge, onClose }: BadgeNotificationProps) {
         });
       }, interval);
 
-      return () => clearInterval(timer);
+      return () => {
+        clearInterval(timer);
+      };
+    } catch (error) {
+      console.error('[BadgeNotification] Error:', error);
     }
   }, [badge, onClose]);
 

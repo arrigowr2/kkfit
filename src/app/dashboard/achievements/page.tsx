@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useGamification } from '@/lib/hooks/useGamification';
 import { useFitnessSummary } from '@/lib/hooks/useFitnessData';
 import { LevelDisplay } from '@/components/ui/LevelDisplay';
@@ -10,15 +11,24 @@ import { DashboardSkeleton } from '@/components/ui/SkeletonLoaders';
 import { Trophy } from 'lucide-react';
 
 export default function AchievementsPage() {
-  const { data: fitnessData, isLoading } = useFitnessSummary('total');
-  
+  const { data: fitnessData, isLoading, error } = useFitnessSummary('total');
+  const [hasError, setHasError] = useState(false);
+
+  // Track errors
+  useEffect(() => {
+    if (error) {
+      console.error('[AchievementsPage] Error loading data:', error);
+      setHasError(true);
+    }
+  }, [error]);
+
   // Transform fitness data for gamification
-  const activityData = fitnessData?.steps?.map((step: { date: string; steps: number }) => ({
+  const activityData = fitnessData?.steps ? fitnessData.steps.map((step: { date: string; steps: number }) => ({
     date: step.date,
     steps: step.steps,
     calories: fitnessData.calories?.find((c: { date: string; calories: number }) => c.date === step.date)?.calories || 0,
     sleep: fitnessData.sleep?.find((s: { date: string; duration: number }) => s.date === step.date)?.duration || 0,
-  })) || [];
+  })) : [];
 
   const {
     streak,
@@ -35,6 +45,16 @@ export default function AchievementsPage() {
   if (isLoading) {
     return (
       <DashboardSkeleton />
+    );
+  }
+
+  if (hasError || error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4">
+        <div className="text-4xl">⚠️</div>
+        <p className="text-red-400 font-medium text-center">Erro ao carregar dados do Google Fit</p>
+        <p className="text-slate-400 text-sm">Tente novamente mais tarde.</p>
+      </div>
     );
   }
 
