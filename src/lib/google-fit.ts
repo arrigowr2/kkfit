@@ -211,107 +211,115 @@ export async function getHeartRateData(
     startTime.setDate(startTime.getDate() - days);
   }
 
-  // Try multiple data sources for heart rate - some users have different sources available
+  // For heart rate, we need to use the datasets API to get raw data points
+  // The aggregate API doesn't return heart rate data points for most users
   const dataSourceIds = [
     "derived:com.google.heart_rate.bpm:com.google.android.gms:merge_heart_rate_bpm",
-    "derived:com.google.heart_rate.bpm:com.google.android.gms:aggregated",
     "raw:com.google.heart_rate.bpm:Pixel Watch",
+    "raw:com.google.heart_rate.bpm:garmin",
     "derived:com.google.heart_rate.bpm:com.google:merged",
   ];
   
   let allPoints: any[] = [];
   let usedDataSource: string | null = null;
+  let datasetsApiWorked = false;
   
+  // Try datasets API for each data source
   for (const dataSourceId of dataSourceIds) {
-    const url = new URL(`${FITNESS_API_BASE}/datasets/${dataSourceId}-${startTime.getTime()}-${endTime.getTime()}`);
-    console.log("[HeartRate] Trying dataSourceId:", dataSourceId);
-    console.log("[HeartRate] URL:", url.toString());
-    
-    const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-    
-    if (!response.ok) {
-      console.log("[HeartRate] DataSource", dataSourceId, "failed:", response.status);
-      continue;
-    }
-    
-    const data = await response.json();
-    console.log("[HeartRate] DataSource", dataSourceId, "returned", data.point?.length || 0, "points");
-    
-    if (data.point && data.point.length > 0) {
-      allPoints = allPoints.concat(data.point);
-      if (!usedDataSource) {
-        usedDataSource = dataSourceId;
-        console.log("[HeartRate] ✓ Using dataSource:", dataSourceId);
+    try {
+      const url = new URL(`${FITNESS_API_BASE}/datasets/${dataSourceId}-${startTime.getTime()}-${endTime.getTime()}`);
+      console.log("[HeartRate] Trying datasets API with:", dataSourceId);
+      
+      const response = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      
+      if (!response.ok) {
+        console.log("[HeartRate] DataSource", dataSourceId, "failed:", response.status);
+        continue;
       }
+      
+      const data = await response.json();
+      console.log("[HeartRate] DataSource", dataSourceId, "returned", data.point?.length || 0, "points");
+      
+      if (data.point && data.point.length > 0) {
+        allPoints = allPoints.concat(data.point);
+        if (!usedDataSource) {
+          usedDataSource = dataSourceId;
+          datasetsApiWorked = true;
+          console.log("[HeartRate] ✓ Using dataSource:", dataSourceId);
+        }
+      }
+    } catch (err) {
+      console.log("[HeartRate] Error with dataSource", dataSourceId, ":", err);
     }
   }
   
   console.log("[HeartRate] Used dataSource:", usedDataSource);
   console.log("[HeartRate] Total points from all sources:", allPoints.length);
   
-  // If no data from datasets API, try aggregate API
-  if (allPoints.length === 0) {
-    console.log("[HeartRate] No data from datasets API, falling back to aggregate");
-    const aggregateResult = await getHeartRateDataAggregate(accessToken, days, specificDate);
-    return { data: aggregateResult.data, debug: { method: "aggregate", ...aggregateResult.debug } };
-  }
-  
-  // Process raw data points
-  const result: HeartRateData[] = [];
-  const dailyValues: Record<string, number[]> = {};
-  
-  for (const point of allPoints) {
-    // Each point has startTime and endTime in nanoseconds - use LOCAL time
-    const pointTime = parseInt(point.startTimeNanos || point.endTimeNanos) / 1000000;
-    const d = new Date(pointTime);
-    // Use LOCAL time instead of UTC
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const date = `${year}-${month}-${day}`;
+  // If datasets API worked and has data, use it
+  if (datasetsApiWorked && allPoints.length > 0) {
+    // Process raw data points
+    const result: HeartRateData[] = [];
+    const dailyValues: Record<string, number[]> = {};
     
-    // Handle different value formats
-    let value = 0;
-    if (point.value?.[0]?.fpVal !== undefined) {
-      value = point.value[0].fpVal;
-    } else if (point.value?.[0]?.intVal !== undefined) {
-      value = point.value[0].intVal;
-    } else if (point.value?.[0]?.mapVal !== undefined) {
-      // Some responses have nested values
-      continue;
-    }
-    
-    if (value > 0) {
-      if (!dailyValues[date]) {
-        dailyValues[date] = [];
+    for (const point of allPoints) {
+      // Each point has startTime and endTime in nanoseconds - use LOCAL time
+      const pointTime = parseInt(point.startTimeNanos || point.endTimeNanos) / 1000000;
+      const d = new Date(pointTime);
+      // Use LOCAL time instead of UTC
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const date = `${year}-${month}-${day}`;
+      
+      // Handle different value formats
+      let value = 0;
+      if (point.value?.[0]?.fpVal !== undefined) {
+        value = point.value[0].fpVal;
+      } else if (point.value?.[0]?.intVal !== undefined) {
+        value = point.value[0].intVal;
+      } else if (point.value?.[0]?.mapVal !== undefined) {
+        // Some responses have nested values
+        continue;
       }
-      dailyValues[date].push(value);
+      
+      if (value > 0) {
+        if (!dailyValues[date]) {
+          dailyValues[date] = [];
+        }
+        dailyValues[date].push(value);
+      }
     }
+    
+    console.log("[HeartRate] Daily values:", JSON.stringify(dailyValues));
+    
+    // Calculate min, max, avg for each day
+    for (const date of Object.keys(dailyValues).sort()) {
+      const values = dailyValues[date];
+      if (values.length > 0) {
+        const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+        const min = Math.round(Math.min(...values));
+        const max = Math.round(Math.max(...values));
+        console.log("[HeartRate]", date, "- min:", min, "max:", max, "avg:", avg, "count:", values.length);
+        result.push({ date, avg, min, max });
+      }
+    }
+    
+    return { data: result.sort((a, b) => a.date.localeCompare(b.date)), debug: { dailyValues, method: "datasets", usedDataSource } };
   }
   
-  console.log("[HeartRate] Daily values:", JSON.stringify(dailyValues));
-  
-  // Calculate min, max, avg for each day
-  for (const date of Object.keys(dailyValues).sort()) {
-    const values = dailyValues[date];
-    if (values.length > 0) {
-      const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-      const min = Math.round(Math.min(...values));
-      const max = Math.round(Math.max(...values));
-      console.log("[HeartRate]", date, "- min:", min, "max:", max, "avg:", avg, "count:", values.length);
-      result.push({ date, avg, min, max });
-    }
-  }
-  
-  return { data: result.sort((a, b) => a.date.localeCompare(b.date)), debug: { dailyValues, method: "datasets", usedDataSource } };
+  // Fallback: Try aggregate API with different data source options
+  console.log("[HeartRate] Datasets API didn't return data, trying aggregate with summary...");
+  const aggregateResult = await getHeartRateDataWithSummary(accessToken, days, specificDate);
+  return { data: aggregateResult.data, debug: { method: "aggregate", ...aggregateResult.debug } };
 }
 
-// Fallback to aggregate API
-async function getHeartRateDataAggregate(
+// Fallback: Try aggregate API with heart_rate.summary to get min/max/avg values
+async function getHeartRateDataWithSummary(
   accessToken: string,
   days: number = 30,
   specificDate?: string
@@ -329,10 +337,11 @@ async function getHeartRateDataAggregate(
     startTime.setDate(startTime.getDate() - days);
   }
 
+  // Try heart_rate.summary which provides min/max/avg values
   const body = {
     aggregateBy: [
       {
-        dataSourceId: "derived:com.google.heart_rate.bpm:com.google.android.gms:merge_heart_rate_bpm",
+        dataSourceId: "derived:com.google.heart_rate.summary:com.google.android.gms:aggregated",
       },
     ],
     bucketByTime: { durationMillis: 86400000 },
@@ -340,73 +349,90 @@ async function getHeartRateDataAggregate(
     endTimeMillis: endTime.getTime(),
   };
 
+  console.log("[HeartRate Summary] Requesting with body:", JSON.stringify(body, null, 2));
+
   const data = await fetchFitData(accessToken, "/dataset:aggregate", body);
 
-  console.log("[HeartRate Aggregate] Raw API response:", JSON.stringify(data, null, 2));
+  console.log("[HeartRate Summary] Raw API response:", JSON.stringify(data, null, 2));
 
   const result: HeartRateData[] = [];
   if (data.bucket) {
     for (const bucket of data.bucket) {
-      const date = (() => {
-        const d = new Date(parseInt(bucket.startTimeMillis));
-        const year = d.getUTCFullYear();
-        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(d.getUTCDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      })();
-      let avg = 0,
-        min = 0,
-        max = 0;
+      // Use LOCAL time for date
+      const d = new Date(parseInt(bucket.startTimeMillis));
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const date = `${year}-${month}-${day}`;
       
-      console.log("[HeartRate Aggregate] Bucket date:", date, "datasets:", bucket.dataset?.length);
+      console.log("[HeartRate Summary] Bucket date:", date);
+      console.log("[HeartRate Summary] Bucket datasets:", JSON.stringify(bucket.dataset));
       
-      // Find the dataset with actual heart rate points (not just summary)
-      // Look for merge_heart_rate_bpm first, then aggregated
-      let foundDataset = null;
-      let foundDataSourceId = "unknown";
+      let avg = 0, min = 0, max = 0;
+      let foundDataSource = "unknown";
       
+      // Check if there's a dataset with heart rate summary data
       if (bucket.dataset && bucket.dataset.length > 0) {
-        // First try to find merge_heart_rate_bpm dataset with points
         for (const ds of bucket.dataset) {
-          if (ds.dataSourceId?.includes("merge_heart_rate_bpm") && ds.point?.length > 0) {
-            foundDataset = ds;
-            foundDataSourceId = ds.dataSourceId;
-            break;
-          }
-        }
-        // If not found, try any dataset with points
-        if (!foundDataset) {
-          for (const ds of bucket.dataset) {
-            if (ds.point?.length > 0) {
-              foundDataset = ds;
-              foundDataSourceId = ds.dataSourceId;
-              break;
+          foundDataSource = ds.dataSourceId || "unknown";
+          
+          // Check if there are points with values
+          if (ds.point && ds.point.length > 0) {
+            for (const point of ds.point) {
+              // The summary data can have different value formats
+              if (point.value && point.value.length > 0) {
+                for (const val of point.value) {
+                  // Check for fpVal (floating point value)
+                  if (val.fpVal !== undefined && val.fpVal > 0) {
+                    if (avg === 0) avg = Math.round(val.fpVal);
+                  }
+                  // Check for mapVal which contains min/max/avg keys
+                  if (val.mapVal && Array.isArray(val.mapVal)) {
+                    for (const m of val.mapVal) {
+                      if (m.key === "min" && m.value?.fpVal) {
+                        min = Math.round(m.value.fpVal);
+                      } else if (m.key === "max" && m.value?.fpVal) {
+                        max = Math.round(m.value.fpVal);
+                      } else if (m.key === "avg" && m.value?.fpVal) {
+                        avg = Math.round(m.value.fpVal);
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }
       }
       
-      if (foundDataset?.point?.length > 0) {
-        const values = foundDataset.point.map(
-          (p: { value: { fpVal: number }[] }) => p.value?.[0]?.fpVal || 0
-        );
-        console.log("[HeartRate Aggregate] Values for", date, ":", values, "from", foundDataSourceId);
-        
-        avg = Math.round(values.reduce((a: number, b: number) => a + b, 0) / values.length);
-        min = Math.round(Math.min(...values));
-        max = Math.round(Math.max(...values));
-      }
+      console.log("[HeartRate Summary]", date, ": avg=", avg, "min=", min, "max=", max, "from:", foundDataSource);
+      
+      // If we got valid data (avg > 0), use it
       if (avg > 0) {
+        // If min/max are still 0, use avg as fallback (single reading)
+        if (min === 0) min = avg;
+        if (max === 0) max = avg;
         result.push({ date, avg, min, max });
       }
     }
   }
 
+  console.log("[HeartRate Summary] Final result:", JSON.stringify(result));
+
   return { data: result.sort((a, b) => a.date.localeCompare(b.date)), debug: { 
-    method: "aggregate", 
+    method: "aggregate_summary", 
     usedDataSource: data.bucket?.[0]?.dataset?.[0]?.dataSourceId || "unknown",
-    rawResponse: JSON.stringify(data).substring(0, 500) 
+    rawResponse: JSON.stringify(data).substring(0, 1000) 
   } };
+}
+
+// Legacy function kept for compatibility
+async function getHeartRateDataAggregate(
+  accessToken: string,
+  days: number = 30,
+  specificDate?: string
+): Promise<{ data: HeartRateData[]; debug: any }> {
+  return getHeartRateDataWithSummary(accessToken, days, specificDate);
 }
 
 // Helper function to fetch sleep sessions from Google Fit Sessions API
