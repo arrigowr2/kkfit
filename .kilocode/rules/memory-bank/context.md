@@ -90,6 +90,7 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Add sleep phases display: show deep/light/REM/average in Sleep page with averages and distribution
 - [x] Add heart rate zones: estimate time in zones (rest/fat burn/cardio/peak) based on avg HR
 - [x] Update interfaces: SleepData and HeartRateData now include phase/zone fields
+- [x] Fix heart rate zones values: limit to 30 days max, cap each zone at 720h to prevent unrealistic values like 421h or 1755%
 
 ## Current Structure
 
