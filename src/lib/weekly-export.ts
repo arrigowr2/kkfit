@@ -239,17 +239,17 @@ export async function generatePDF(data: any[], startDate: string, endDate: strin
     
     y -= 30;
     
-    // Summary data
+    // Summary data - no emojis in PDF (Helvetica doesn't support Unicode)
     const summaryData = [
-      { label: 'Passos Totais', value: summary.totalSteps.toLocaleString(), icon: '🚶' },
-      { label: 'Calorias Queimadas', value: summary.totalCalories.toLocaleString(), icon: '🔥' },
-      { label: 'FC Média', value: `${summary.avgHeartRate} bpm`, icon: '❤️' },
-      { label: 'Peso Médio', value: `${summary.avgWeight} kg`, icon: '⚖️' },
-      { label: 'Horas de Sono', value: `${Math.round(summary.totalSleepHours)}h`, icon: '😴' },
+      { label: 'Passos Totais', value: summary.totalSteps.toLocaleString() },
+      { label: 'Calorias Queimadas', value: summary.totalCalories.toLocaleString() },
+      { label: 'FC Media', value: `${summary.avgHeartRate} bpm` },
+      { label: 'Peso Medio', value: `${summary.avgWeight} kg` },
+      { label: 'Horas de Sono', value: `${Math.round(summary.totalSleepHours)}h` },
     ];
     
     summaryData.forEach((item) => {
-      page.drawText(`${item.icon} ${item.label}: ${item.value}`, {
+      page.drawText(`${item.label}: ${item.value}`, {
         x: 70,
         y: y,
         size: 12,
