@@ -35,8 +35,11 @@ function calculateHeartRateZones(values: number[], minBpm: number): {
   
   let rest = 0, fatBurn = 0, cardio = 0, peak = 0;
   
-  // Each value represents a point in time (assume ~5 min intervals for simplicity)
-  const minutesPerPoint = 5;
+  // Estimate interval between readings based on total values
+  // For typical heart rate data: assume readings every ~5 minutes
+  // But cap at reasonable maximum (1 reading per minute = 1440 per day)
+  const maxMinutesPerDay = 1440; // 24 hours
+  const minutesPerPoint = Math.max(1, Math.min(5, Math.floor(maxMinutesPerDay / values.length)));
   
   for (const value of values) {
     if (value < fatBurnMin) {
@@ -49,6 +52,13 @@ function calculateHeartRateZones(values: number[], minBpm: number): {
       peak += minutesPerPoint;
     }
   }
+  
+  // Cap each zone at maximum possible minutes per day (1440)
+  // This prevents unrealistic values when there are many data points
+  rest = Math.min(rest, maxMinutesPerDay);
+  fatBurn = Math.min(fatBurn, maxMinutesPerDay);
+  cardio = Math.min(cardio, maxMinutesPerDay);
+  peak = Math.min(peak, maxMinutesPerDay);
   
   return { rest, fatBurn, cardio, peak };
 }

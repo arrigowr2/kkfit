@@ -76,7 +76,8 @@ export default function HeartPageClient() {
 
   useEffect(() => {
     console.log("[HeartPage] Fetching heart rate data...");
-    fetch("/api/fitness/summary?date=total")
+    // Use days parameter to limit to 30 days
+    fetch("/api/fitness/summary?date=today&days=30")
       .then((r) => {
         console.log("[HeartPage] Response status:", r.status);
         return r.json();
@@ -139,10 +140,19 @@ export default function HeartPageClient() {
     { rest: 0, fatBurn: 0, cardio: 0, peak: 0 }
   );
   
+  // Cap at 30 days * 24 hours = 720 hours (43200 minutes) per zone
+  const maxMinutesPerZone = 43200;
+  const timeInZonesCapped = {
+    rest: Math.min(timeInZonesFromData.rest, maxMinutesPerZone),
+    fatBurn: Math.min(timeInZonesFromData.fatBurn, maxMinutesPerZone),
+    cardio: Math.min(timeInZonesFromData.cardio, maxMinutesPerZone),
+    peak: Math.min(timeInZonesFromData.peak, maxMinutesPerZone),
+  };
+  
   // Use backend data if available, otherwise calculate estimate
-  const hasTimeInZonesData = timeInZonesFromData.rest + timeInZonesFromData.fatBurn + timeInZonesFromData.cardio + timeInZonesFromData.peak > 0;
+  const hasTimeInZonesData = timeInZonesCapped.rest + timeInZonesCapped.fatBurn + timeInZonesCapped.cardio + timeInZonesCapped.peak > 0;
   const timeInZones = hasTimeInZonesData 
-    ? timeInZonesFromData 
+    ? timeInZonesCapped 
     : estimateTimeInZones(avgBpm, maxBpm, minBpm);
 
   return (
