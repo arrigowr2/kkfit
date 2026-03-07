@@ -65,6 +65,10 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Improve HeartRateChart visibility: stronger gradient (0.6 opacity), thicker stroke (3px), always visible dots with white border
 - [x] Fix Vercel build error: add export const dynamic = 'force-dynamic' to dashboard/layout.tsx and page.tsx to fix "Route couldn't be rendered statically because it used headers" error
 - [x] Fix heart rate data: iterate through all datasets to find one with actual heart rate points (not just summary)
+- [x] Add sleep phases detection: fetch sleep stage data from Google Fit API (deep, light, REM)
+- [x] Add sleep phases display: show deep/light/REM/average in Sleep page with averages and distribution
+- [x] Add heart rate zones: estimate time in zones (rest/fat burn/cardio/peak) based on avg HR
+- [x] Update interfaces: SleepData and HeartRateData now include phase/zone fields
 
 ## Current Structure
 
