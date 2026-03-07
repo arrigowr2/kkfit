@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
 import { getStepsData, getCaloriesData, getHeartRateData, getWeightData, getSleepData, getActivityData } from "./google-fit";
+
+const CREDENTIALS_COOKIE_NAME = "kkfit_credentials";
 
 interface StoredCredentials {
   refreshToken: string;
@@ -6,17 +9,40 @@ interface StoredCredentials {
   lastExport?: string;
 }
 
-// Store credentials in memory (for Vercel serverless, this works per instance)
-// In production, you'd want to use a database or encrypted storage
-let storedCredentials: StoredCredentials | null = null;
-
-export function storeCredentials(refreshToken: string, email: string) {
-  storedCredentials = { refreshToken, email, lastExport: new Date().toISOString() };
-  console.log("[WeeklyExport] Credentials stored successfully");
+// Store credentials in a secure HTTP-only cookie (persists across requests in Vercel)
+export async function storeCredentials(refreshToken: string, email: string) {
+  const credentials: StoredCredentials = { 
+    refreshToken, 
+    email, 
+    lastExport: new Date().toISOString() 
+  };
+  
+  const cookieStore = await cookies();
+  cookieStore.set(CREDENTIALS_COOKIE_NAME, JSON.stringify(credentials), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+    path: "/",
+  });
+  
+  console.log("[WeeklyExport] Credentials stored successfully in cookie");
 }
 
-export function getStoredCredentials(): StoredCredentials | null {
-  return storedCredentials;
+export async function getStoredCredentials(): Promise<StoredCredentials | null> {
+  try {
+    const cookieStore = await cookies();
+    const credentialsCookie = cookieStore.get(CREDENTIALS_COOKIE_NAME);
+    
+    if (!credentialsCookie?.value) {
+      return null;
+    }
+    
+    return JSON.parse(credentialsCookie.value) as StoredCredentials;
+  } catch (error) {
+    console.error("[WeeklyExport] Error reading credentials cookie:", error);
+    return null;
+  }
 }
 
 export async function getAccessTokenFromRefreshToken(refreshToken: string): Promise<string> {

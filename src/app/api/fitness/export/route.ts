@@ -35,7 +35,7 @@ export async function POST(request: Request) {
         );
       }
 
-      storeCredentials(refreshToken, email);
+      await storeCredentials(refreshToken, email);
       console.log("[Export] Credentials stored for:", email);
 
       return NextResponse.json({ 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     if (action === "send") {
       // Manual trigger to send report
-      const credentials = getStoredCredentials();
+      const credentials = await getStoredCredentials();
 
       if (!credentials) {
         return NextResponse.json(
@@ -151,7 +151,7 @@ export async function GET(request: Request) {
   try {
     console.log("[Export] Cron job triggered - starting weekly export");
 
-    const credentials = getStoredCredentials();
+    const credentials = await getStoredCredentials();
 
     if (!credentials) {
       console.log("[Export] No credentials stored, skipping weekly export");
