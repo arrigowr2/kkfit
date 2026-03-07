@@ -76,8 +76,8 @@ export default function HeartPageClient() {
 
   useEffect(() => {
     console.log("[HeartPage] Fetching heart rate data...");
-    // Use days parameter to limit to 30 days
-    fetch("/api/fitness/summary?date=today&days=30")
+    // Use date=total to get all historical data (no date filtering on server)
+    fetch("/api/fitness/summary?date=total")
       .then((r) => {
         console.log("[HeartPage] Response status:", r.status);
         return r.json();
@@ -96,7 +96,14 @@ export default function HeartPageClient() {
             d.heartRate.map((day: { date: string; min: number; max: number; avg: number }) => `${day.date}: min=${day.min}, max=${day.max}, avg=${day.avg}`)
           );
         }
-        setData(d.heartRate || []);
+        // Filter to last 30 days only
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const filteredData = (d.heartRate || []).filter((day: HeartRateData) => {
+          const dayDate = new Date(day.date);
+          return dayDate >= thirtyDaysAgo;
+        });
+        setData(filteredData);
         setLoading(false);
       })
       .catch((err) => {
