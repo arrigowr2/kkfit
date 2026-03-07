@@ -92,6 +92,8 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Update interfaces: SleepData and HeartRateData now include phase/zone fields
 - [x] Fix heart rate zones values: limit to 30 days max, cap each zone at 720h to prevent unrealistic values like 421h or 1755%
 - [x] Fix Heart page showing no data: changed from ?date=today to ?date=total and filter on client side to last 30 days
+- [x] Fix heart zones bars: add 30 days label, cap percentage at 100%
+- [x] Fix email attachments: convert content to Buffer with proper encoding for CSV and JSON
 - [x] Fix email export: use HTTP-only cookies for credentials persistence (fixes serverless memory reset issue)
 - [x] Add .env.example with EMAIL_USER and EMAIL_PASS variables
 

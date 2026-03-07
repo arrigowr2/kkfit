@@ -103,11 +103,13 @@ export async function POST(request: Request) {
         attachments: [
           {
             filename: `fitness_report_${report.startDate}_${report.endDate}.csv`,
-            content: "\ufeff" + csvContent,
+            content: Buffer.from("\ufeff" + csvContent, "utf-8"),
+            encoding: "utf-8",
           },
           {
             filename: `fitness_report_${report.startDate}_${report.endDate}.json`,
-            content: jsonContent,
+            content: Buffer.from(jsonContent, "utf-8"),
+            encoding: "utf-8",
           },
         ],
       };
@@ -209,11 +211,13 @@ export async function GET(request: Request) {
       attachments: [
         {
           filename: `fitness_report_${report.startDate}_${report.endDate}.csv`,
-          content: "\ufeff" + csvContent,
+          content: Buffer.from("\ufeff" + csvContent, "utf-8"),
+          encoding: "utf-8",
         },
         {
           filename: `fitness_report_${report.startDate}_${report.endDate}.json`,
-          content: jsonContent,
+          content: Buffer.from(jsonContent, "utf-8"),
+          encoding: "utf-8",
         },
       ],
     };
