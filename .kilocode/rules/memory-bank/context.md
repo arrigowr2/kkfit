@@ -104,6 +104,7 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix email export: use HTTP-only cookies for credentials persistence (fixes serverless memory reset issue)
 - [x] Add .env.example with EMAIL_USER and EMAIL_PASS variables
 - [x] Reorganize PDF layout: place Dados Diarios table next to Resumo da Semana on page 1
+- [x] Fix PDF symmetric layout: align both columns at same Y position for symmetrical design
 
 ## Current Structure
 
