@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
-import { getStoredCredentials, getAccessTokenFromRefreshToken, generateWeeklyReport, generateCSV, generatePDF, storeCredentials } from "@/lib/weekly-export";
+import { getStoredCredentials, getAccessTokenFromRefreshToken, generateWeeklyReport, generateCSV, generatePDFWithCharts, storeCredentials } from "@/lib/weekly-export";
 
 // Configure email transporter
 function createTransporter() {
@@ -68,10 +68,10 @@ export async function POST(request: Request) {
       const csvContent = generateCSV(report.data);
       const jsonContent = JSON.stringify(report.data, null, 2);
       
-      // Generate PDF
-      console.log("[Export] Generating PDF report...");
-      const pdfBuffer = await generatePDF(report.data, report.startDate, report.endDate, report.summary);
-      console.log("[Export] PDF generated, size:", pdfBuffer.length, "bytes");
+      // Generate PDF with charts
+      console.log("[Export] Generating PDF report with charts...");
+      const pdfBuffer = await generatePDFWithCharts(report.data, report.startDate, report.endDate, report.summary);
+      console.log("[Export] PDF with charts generated, size:", pdfBuffer.length, "bytes");
 
       // Create email transporter
       const transporter = createTransporter();
@@ -186,10 +186,10 @@ export async function GET(request: Request) {
     const csvContent = generateCSV(report.data);
     const jsonContent = JSON.stringify(report.data, null, 2);
     
-    // Generate PDF
-    console.log("[Export] Generating PDF report for cron...");
-    const pdfBuffer = await generatePDF(report.data, report.startDate, report.endDate, report.summary);
-    console.log("[Export] PDF generated for cron, size:", pdfBuffer.length, "bytes");
+    // Generate PDF with charts
+    console.log("[Export] Generating PDF report with charts for cron...");
+    const pdfBuffer = await generatePDFWithCharts(report.data, report.startDate, report.endDate, report.summary);
+    console.log("[Export] PDF with charts generated for cron, size:", pdfBuffer.length, "bytes");
 
     const transporter = createTransporter();
 
