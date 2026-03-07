@@ -362,35 +362,44 @@ function drawBarChart(
   helveticaFont: any = null,
   helveticaBold: any = null
 ) {
-  if (!helveticaFont) helveticaFont = page._doc.catalog;
-  if (!helveticaBold) helveticaBold = helveticaFont;
+  const CHART_HEIGHT = 80; // Reduced height
+  const BAR_MAX_WIDTH = 45;
+  const PADDING_LEFT = 50;
+  const PADDING_RIGHT = 50;
+  const SPACING_BETWEEN_BARS = 8;
   
-  const chartWidth = 450;
-  const chartHeight = 100;
-  const barWidth = (chartWidth - 40) / Math.max(data.length, 1) - 10;
-  const padding = 20;
+  // Ensure we have valid data
+  if (!data || data.length === 0) {
+    return startY - 40;
+  }
+  
+  // Calculate bar dimensions
+  const availableWidth = 595 - PADDING_LEFT - PADDING_RIGHT;
+  const barWidth = Math.min(BAR_MAX_WIDTH, (availableWidth - (data.length - 1) * SPACING_BETWEEN_BARS) / data.length);
+  const totalBarsWidth = barWidth * data.length + (data.length - 1) * SPACING_BETWEEN_BARS;
+  const startX = PADDING_LEFT + (availableWidth - totalBarsWidth) / 2;
   
   const max = maxValue || Math.max(...data.map(d => d.value), 1);
   
-  // Chart title
+  // Draw title
   page.drawText(title, {
-    x: 50,
+    x: PADDING_LEFT,
     y: startY,
-    size: 12,
+    size: 11,
     font: helveticaBold,
     color: rgb(0.122, 0.161, 0.215),
   });
   
-  const chartTop = startY - 15;
-  const chartBottom = chartTop - chartHeight;
+  const chartBaseY = startY - 10;
+  const chartTopY = chartBaseY - CHART_HEIGHT;
   
-  // Draw bars
+  // Draw each bar
   data.forEach((item, i) => {
-    const barHeight = (item.value / max) * chartHeight;
-    const x = padding + 50 + i * (barWidth + 10);
-    const y = chartBottom + barHeight;
+    const barHeight = Math.max(2, (item.value / max) * CHART_HEIGHT);
+    const x = startX + i * (barWidth + SPACING_BETWEEN_BARS);
+    const y = chartTopY;
     
-    // Bar
+    // Bar rectangle
     page.drawRectangle({
       x,
       y,
@@ -399,28 +408,32 @@ function drawBarChart(
       color: rgb(color.r, color.g, color.b),
     });
     
-    // Label (day)
+    // Day label below bar
     page.drawText(item.label, {
-      x: x + barWidth / 2 - 5,
-      y: chartBottom - 12,
+      x: x + barWidth / 2 - 8,
+      y: chartTopY - 12,
       size: 7,
       font: helveticaFont,
       color: rgb(0.4, 0.4, 0.4),
     });
     
-    // Value on top of bar
-    if (barHeight > 15) {
-      page.drawText(item.value.toLocaleString(), {
-        x: x + barWidth / 2 - 10,
-        y: y + 3,
-        size: 7,
+    // Value on top of bar (if bar is tall enough)
+    if (barHeight > 12) {
+      const valueText = item.value >= 1000 
+        ? (item.value / 1000).toFixed(1) + 'k' 
+        : item.value.toString();
+      page.drawText(valueText, {
+        x: x + barWidth / 2 - 6,
+        y: y + barHeight + 2,
+        size: 6,
         font: helveticaFont,
-        color: rgb(1, 1, 1),
+        color: rgb(0.2, 0.2, 0.2),
       });
     }
   });
   
-  return chartBottom - 30;
+  // Return the Y position after this chart
+  return chartTopY - 25;
 }
 
 // Enhanced PDF generation with charts
@@ -439,40 +452,51 @@ export async function generatePDFWithCharts(
     let page = pdfDoc.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
     
-    let y = height - 60;
+    let y = height - 50;
+    const PAGE_MARGIN = 40;
+    const MIN_Y_FOR_CHART = 120; // Minimum Y position to draw a chart
+    const MIN_Y_FOR_TABLE = 100;  // Minimum Y position for table
+    
+    // Helper to check and add new page if needed
+    const ensureSpace = (requiredSpace: number): void => {
+      if (y < requiredSpace) {
+        page = pdfDoc.addPage([595, 842]);
+        y = height - PAGE_MARGIN;
+      }
+    };
     
     // Title
     page.drawText('Relatorio Semanal de Fitness', {
-      x: 50,
+      x: PAGE_MARGIN,
       y: y,
-      size: 24,
+      size: 22,
       font: helveticaBold,
       color: rgb(0.145, 0.388, 0.922),
     });
     
-    y -= 30;
+    y -= 25;
     
     // Date range
     page.drawText(`Periodo: ${startDate} a ${endDate}`, {
-      x: 50,
+      x: PAGE_MARGIN,
       y: y,
-      size: 14,
+      size: 12,
       font: helveticaFont,
       color: rgb(0.4, 0.4, 0.4),
     });
     
-    y -= 50;
+    y -= 35;
     
     // Summary section
     page.drawText('Resumo da Semana', {
-      x: 50,
+      x: PAGE_MARGIN,
       y: y,
-      size: 18,
+      size: 16,
       font: helveticaBold,
       color: rgb(0.122, 0.161, 0.215),
     });
     
-    y -= 30;
+    y -= 22;
     
     const summaryData = [
       { label: 'Passos Totais', value: summary.totalSteps.toLocaleString() },
@@ -484,172 +508,164 @@ export async function generatePDFWithCharts(
     
     summaryData.forEach((item) => {
       page.drawText(`${item.label}: ${item.value}`, {
-        x: 70,
+        x: PAGE_MARGIN + 15,
         y: y,
-        size: 12,
+        size: 11,
         font: helveticaFont,
         color: rgb(0.216, 0.255, 0.318),
       });
-      y -= 20;
+      y -= 16;
     });
     
-    y -= 30;
+    y -= 25;
     
-    // Charts section
-    page.drawText('Graficos Comparativos', {
-      x: 50,
+    // Charts section title
+    ensureSpace(100);
+    page.drawText('Graficos Comparativos (Semana)', {
+      x: PAGE_MARGIN,
       y: y,
-      size: 18,
+      size: 16,
       font: helveticaBold,
       color: rgb(0.122, 0.161, 0.215),
     });
     
-    y -= 30;
+    y -= 20;
     
-    // Prepare chart data
-    const chartData = data.map((d: any) => {
+    // Prepare chart data - get last 7 days in order
+    const last7Days = data.slice(-7);
+    const chartLabels = last7Days.map((d: any) => {
       const date = new Date(d.date);
-      const dayName = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][date.getDay()];
-      return {
-        label: dayName,
-        date: d.date,
-      };
+      return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][date.getDay()];
     });
     
+    // Helper to create chart data
+    const createChartData = (field: string, converter?: (v: number) => number) => {
+      return chartLabels.map((label: string, i: number) => ({
+        label,
+        value: converter ? converter(last7Days[i]?.[field] || 0) : (last7Days[i]?.[field] || 0)
+      }));
+    };
+    
     // Steps chart (blue)
-    const stepsChartData = chartData.map((d: any, i: number) => ({
-      label: d.label,
-      value: data[i]?.steps || 0,
-    }));
+    ensureSpace(MIN_Y_FOR_CHART);
+    const stepsChartData = createChartData('steps');
     y = drawBarChart(page, stepsChartData, 'Passos Diarios', y, { r: 0.145, g: 0.388, b: 0.922 }, undefined, helveticaFont, helveticaBold);
     
-    y -= 20;
+    y -= 15;
     
     // Calories chart (orange)
-    const caloriesChartData = chartData.map((d: any, i: number) => ({
-      label: d.label,
-      value: data[i]?.calories || 0,
-    }));
+    ensureSpace(MIN_Y_FOR_CHART);
+    const caloriesChartData = createChartData('calories');
     y = drawBarChart(page, caloriesChartData, 'Calorias Queimadas', y, { r: 0.945, g: 0.545, b: 0.08 }, undefined, helveticaFont, helveticaBold);
     
-    // Check for new page
-    if (y < 200) {
-      page = pdfDoc.addPage([595, 842]);
-      y = height - 60;
-    }
-    
-    y -= 20;
+    y -= 15;
     
     // Heart rate chart (red)
-    const hrChartData = chartData.map((d: any, i: number) => ({
-      label: d.label,
-      value: data[i]?.heartRateAvg || 0,
-    }));
+    ensureSpace(MIN_Y_FOR_CHART);
+    const hrChartData = createChartData('heartRateAvg');
     y = drawBarChart(page, hrChartData, 'Frequencia Cardiaca (bpm)', y, { r: 0.867, g: 0.2, b: 0.208 }, 120, helveticaFont, helveticaBold);
     
-    y -= 20;
+    y -= 15;
     
     // Sleep chart (purple)
-    const sleepChartData = chartData.map((d: any, i: number) => ({
-      label: d.label,
-      value: (data[i]?.sleepHours || 0) * 60 + (data[i]?.sleepMinutes || 0), // Convert to minutes
+    ensureSpace(MIN_Y_FOR_CHART);
+    const sleepChartData = createChartData('sleepMinutes', (v) => (last7Days[chartLabels.indexOf(chartLabels[chartLabels.indexOf('')])]?.sleepHours || 0) * 60 + v);
+    // Fix: properly calculate sleep in minutes
+    const sleepData = chartLabels.map((label, i) => ({
+      label,
+      value: ((last7Days[i]?.sleepHours || 0) * 60 + (last7Days[i]?.sleepMinutes || 0))
     }));
-    y = drawBarChart(page, sleepChartData, 'Sono (minutos)', y, { r: 0.545, g: 0.208, b: 0.867 }, undefined, helveticaFont, helveticaBold);
+    y = drawBarChart(page, sleepData, 'Sono (minutos)', y, { r: 0.545, g: 0.208, b: 0.867 }, 600, helveticaFont, helveticaBold);
     
-    y -= 20;
+    y -= 15;
     
     // Weight chart (green) - only if we have weight data
-    const hasWeight = data.some((d: any) => d.weight);
+    const hasWeight = last7Days.some((d: any) => d.weight);
     if (hasWeight) {
-      const weightChartData = chartData.map((d: any, i: number) => ({
-        label: d.label,
-        value: data[i]?.weight || 0,
-      }));
-      y = drawBarChart(page, weightChartData, 'Peso (kg)', y, { r: 0.173, g: 0.620, b: 0.478 }, 100, helveticaFont, helveticaBold);
+      ensureSpace(MIN_Y_FOR_CHART);
+      const weightData = createChartData('weight');
+      y = drawBarChart(page, weightData, 'Peso (kg)', y, { r: 0.173, g: 0.620, b: 0.478 }, 120, helveticaFont, helveticaBold);
+      
+      y -= 15;
     }
     
     // Daily data table
-    if (y > 150) {
-      y = Math.min(y, 150);
-      
-      page.drawText('Dados Diarios', {
-        x: 50,
+    ensureSpace(MIN_Y_FOR_TABLE);
+    
+    page.drawText('Dados Diarios', {
+      x: PAGE_MARGIN,
+      y: y,
+      size: 14,
+      font: helveticaBold,
+      color: rgb(0.122, 0.161, 0.215),
+    });
+    
+    y -= 20;
+    
+    // Table headers
+    const colWidths = [75, 65, 65, 60, 55, 50, 55];
+    const headers = ['Data', 'Passos', 'Calorias', 'FC Media', 'FC Min', 'Peso', 'Sono'];
+    let xPos = PAGE_MARGIN;
+    
+    headers.forEach((header, i) => {
+      page.drawText(header, {
+        x: xPos,
         y: y,
-        size: 16,
+        size: 9,
         font: helveticaBold,
-        color: rgb(0.122, 0.161, 0.215),
+        color: rgb(0.42, 0.45, 0.5),
       });
+      xPos += colWidths[i];
+    });
+    
+    y -= 3;
+    
+    page.drawLine({
+      start: { x: PAGE_MARGIN, y: y },
+      end: { x: width - PAGE_MARGIN, y: y },
+      thickness: 0.5,
+      color: rgb(0.898, 0.906, 0.922),
+    });
+    
+    y -= 12;
+    
+    // Table rows
+    last7Days.forEach((row: any) => {
+      ensureSpace(30);
       
-      y -= 25;
+      xPos = PAGE_MARGIN;
+      const rowData = [
+        row.date || '-',
+        (row.steps || '-').toString(),
+        (row.calories || '-').toString(),
+        (row.heartRateAvg || '-').toString(),
+        (row.heartRateMin || '-').toString(),
+        row.weight ? row.weight.toString() : '-',
+        row.sleepHours ? `${row.sleepHours}h` : '-'
+      ];
       
-      // Table headers
-      const colWidths = [80, 70, 70, 70, 70, 60, 60];
-      const headers = ['Data', 'Passos', 'Calorias', 'FC Media', 'FC Min', 'Peso', 'Sono'];
-      let xPos = 50;
-      
-      headers.forEach((header, i) => {
-        page.drawText(header, {
+      rowData.forEach((cell, i) => {
+        page.drawText(cell, {
           x: xPos,
           y: y,
-          size: 9,
-          font: helveticaBold,
-          color: rgb(0.42, 0.45, 0.5),
+          size: 8,
+          font: helveticaFont,
+          color: rgb(0.216, 0.255, 0.318),
         });
         xPos += colWidths[i];
       });
       
-      y -= 5;
-      
-      page.drawLine({
-        start: { x: 50, y: y },
-        end: { x: width - 50, y: y },
-        thickness: 1,
-        color: rgb(0.898, 0.906, 0.922),
-      });
-      
-      y -= 15;
-      
-      // Table rows
-      data.slice(0, 7).forEach((row: any) => {
-        if (y < 80) {
-          page = pdfDoc.addPage([595, 842]);
-          y = height - 60;
-        }
-        
-        xPos = 50;
-        const rowData = [
-          row.date || '-',
-          (row.steps || '-').toString(),
-          (row.calories || '-').toString(),
-          (row.heartRateAvg || '-').toString(),
-          (row.heartRateMin || '-').toString(),
-          row.weight || '-',
-          row.sleepHours ? `${row.sleepHours}h` : '-'
-        ];
-        
-        rowData.forEach((cell, i) => {
-          page.drawText(cell, {
-            x: xPos,
-            y: y,
-            size: 8,
-            font: helveticaFont,
-            color: rgb(0.216, 0.255, 0.318),
-          });
-          xPos += colWidths[i];
-        });
-        
-        y -= 15;
-      });
-    }
+      y -= 14;
+    });
     
-    // Footer
+    // Footer on all pages
     const pages = pdfDoc.getPageCount();
     for (let i = 0; i < pages; i++) {
       const p = pdfDoc.getPage(i);
-      p.drawText(`Pagina ${i + 1} de ${pages}`, {
-        x: 250,
+      p.drawText(`Pagina ${i + 1} de ${pages} - FitDashboard`, {
+        x: PAGE_MARGIN,
         y: 20,
-        size: 10,
+        size: 9,
         font: helveticaFont,
         color: rgb(0.612, 0.639, 0.686),
       });
