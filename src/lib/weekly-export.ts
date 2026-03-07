@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { getStepsData, getCaloriesData, getHeartRateData, getWeightData, getSleepData, getActivityData } from "./google-fit";
-import PDFDocument from "pdfkit";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 const CREDENTIALS_COOKIE_NAME = "kkfit_credentials";
 
@@ -192,90 +192,161 @@ export function generateCSV(data: any[]): string {
 }
 
 export async function generatePDF(data: any[], startDate: string, endDate: string, summary: any): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ margin: 50 });
-      const chunks: Buffer[] = [];
-      
-      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-
-      // Title
-      doc.fontSize(24).fillColor('#2563eb').text('Relatório Semanal de Fitness', { align: 'center' });
-      doc.moveDown(0.5);
-      doc.fontSize(14).fillColor('#666').text(`Período: ${startDate} a ${endDate}`, { align: 'center' });
-      doc.moveDown(2);
-
-      // Summary section
-      doc.fontSize(18).fillColor('#1f2937').text('Resumo da Semana', { underline: true });
-      doc.moveDown(1);
-
-      const summaryData = [
-        { label: 'Passos Totais', value: summary.totalSteps.toLocaleString(), icon: '🚶' },
-        { label: 'Calorias Queimadas', value: summary.totalCalories.toLocaleString(), icon: '🔥' },
-        { label: 'FC Média', value: `${summary.avgHeartRate} bpm`, icon: '❤️' },
-        { label: 'Peso Médio', value: `${summary.avgWeight} kg`, icon: '⚖️' },
-        { label: 'Horas de Sono', value: `${Math.round(summary.totalSleepHours)}h`, icon: '😴' },
-      ];
-
-      summaryData.forEach((item) => {
-        doc.fontSize(12).fillColor('#374151').text(`${item.icon} ${item.label}: `, { continued: true });
-        doc.fontSize(12).fillColor('#1f2937').text(item.value);
+  try {
+    // Create a new PDF document
+    const pdfDoc = await PDFDocument.create();
+    
+    // Embed the standard Helvetica font (built into pdf-lib, no external files needed)
+    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    
+    // Add a page
+    let page = pdfDoc.addPage([595, 842]); // A4 size
+    const { width, height } = page.getSize();
+    
+    let y = height - 60;
+    
+    // Title
+    page.drawText('Relatório Semanal de Fitness', {
+      x: 50,
+      y: y,
+      size: 24,
+      font: helveticaBold,
+      color: rgb(0.145, 0.388, 0.922), // #2563eb
+    });
+    
+    y -= 30;
+    
+    // Date range
+    page.drawText(`Período: ${startDate} a ${endDate}`, {
+      x: 50,
+      y: y,
+      size: 14,
+      font: helveticaFont,
+      color: rgb(0.4, 0.4, 0.4), // #666
+    });
+    
+    y -= 50;
+    
+    // Summary section title
+    page.drawText('Resumo da Semana', {
+      x: 50,
+      y: y,
+      size: 18,
+      font: helveticaBold,
+      color: rgb(0.122, 0.161, 0.215), // #1f2937
+    });
+    
+    y -= 30;
+    
+    // Summary data
+    const summaryData = [
+      { label: 'Passos Totais', value: summary.totalSteps.toLocaleString(), icon: '🚶' },
+      { label: 'Calorias Queimadas', value: summary.totalCalories.toLocaleString(), icon: '🔥' },
+      { label: 'FC Média', value: `${summary.avgHeartRate} bpm`, icon: '❤️' },
+      { label: 'Peso Médio', value: `${summary.avgWeight} kg`, icon: '⚖️' },
+      { label: 'Horas de Sono', value: `${Math.round(summary.totalSleepHours)}h`, icon: '😴' },
+    ];
+    
+    summaryData.forEach((item) => {
+      page.drawText(`${item.icon} ${item.label}: ${item.value}`, {
+        x: 70,
+        y: y,
+        size: 12,
+        font: helveticaFont,
+        color: rgb(0.216, 0.255, 0.318), // #374151
       });
-
-      doc.moveDown(2);
-
-      // Daily data table
-      doc.fontSize(18).fillColor('#1f2937').text('Dados Diários', { underline: true });
-      doc.moveDown(1);
-
-      // Table headers
-      const tableTop = doc.y;
-      const colWidths = [70, 60, 60, 60, 60, 50, 50];
-      const headers = ['Data', 'Passos', 'Calorias', 'FC Média', 'FC Mín', 'Peso', 'Sono'];
-      let xPos = 50;
-
-      doc.fontSize(9).fillColor('#6b7280');
-      headers.forEach((header, i) => {
-        doc.text(header, xPos, tableTop, { width: colWidths[i], align: 'left' });
+      y -= 20;
+    });
+    
+    y -= 30;
+    
+    // Daily data section
+    page.drawText('Dados Diários', {
+      x: 50,
+      y: y,
+      size: 18,
+      font: helveticaBold,
+      color: rgb(0.122, 0.161, 0.215),
+    });
+    
+    y -= 30;
+    
+    // Table headers
+    const colWidths = [80, 70, 70, 70, 70, 60, 60];
+    const headers = ['Data', 'Passos', 'Calorias', 'FC Média', 'FC Mín', 'Peso', 'Sono'];
+    let xPos = 50;
+    
+    headers.forEach((header, i) => {
+      page.drawText(header, {
+        x: xPos,
+        y: y,
+        size: 9,
+        font: helveticaBold,
+        color: rgb(0.42, 0.45, 0.5), // #6b7280
+      });
+      xPos += colWidths[i];
+    });
+    
+    y -= 5;
+    
+    // Draw header line
+    page.drawLine({
+      start: { x: 50, y: y },
+      end: { x: width - 50, y: y },
+      thickness: 1,
+      color: rgb(0.898, 0.906, 0.922), // #e5e7eb
+    });
+    
+    y -= 15;
+    
+    // Table rows
+    data.forEach((row) => {
+      // Check if we need a new page
+      if (y < 80) {
+        page = pdfDoc.addPage([595, 842]);
+        y = height - 60;
+      }
+      
+      xPos = 50;
+      const rowData = [
+        row.date || '-',
+        (row.steps || '-').toString(),
+        (row.calories || '-').toString(),
+        (row.heartRateAvg || '-').toString(),
+        (row.heartRateMin || '-').toString(),
+        (row.weight || '-').toString(),
+        row.sleepHours ? `${row.sleepHours}h` : '-'
+      ];
+      
+      rowData.forEach((cell, i) => {
+        page.drawText(cell, {
+          x: xPos,
+          y: y,
+          size: 8,
+          font: helveticaFont,
+          color: rgb(0.216, 0.255, 0.318), // #374151
+        });
         xPos += colWidths[i];
       });
-
-      doc.moveDown(1);
-      doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#e5e7eb').stroke();
-      doc.moveDown(0.5);
-
-      // Table rows
-      doc.fontSize(8).fillColor('#374151');
-      data.forEach((row) => {
-        if (doc.y > 700) {
-          doc.addPage();
-        }
-        xPos = 50;
-        const rowData = [
-          row.date || '-',
-          (row.steps || '-').toString(),
-          (row.calories || '-').toString(),
-          (row.heartRateAvg || '-').toString(),
-          (row.heartRateMin || '-').toString(),
-          (row.weight || '-').toString(),
-          row.sleepHours ? `${row.sleepHours}h` : '-'
-        ];
-        rowData.forEach((cell, i) => {
-          doc.text(cell, xPos, doc.y, { width: colWidths[i], align: 'left' });
-          xPos += colWidths[i];
-        });
-        doc.moveDown(0.5);
-      });
-
-      // Footer
-      doc.moveDown(2);
-      doc.fontSize(10).fillColor('#9ca3af').text('Gerado automaticamente pelo FitDashboard', { align: 'center' });
-
-      doc.end();
-    } catch (error) {
-      reject(error);
-    }
-  });
+      
+      y -= 15;
+    });
+    
+    // Footer
+    page.drawText('Gerado automaticamente pelo FitDashboard', {
+      x: 50,
+      y: 40,
+      size: 10,
+      font: helveticaFont,
+      color: rgb(0.612, 0.639, 0.686), // #9ca3af
+    });
+    
+    // Serialize the PDF to bytes
+    const pdfBytes = await pdfDoc.save();
+    return Buffer.from(pdfBytes);
+  } catch (error) {
+    console.error("[WeeklyExport] Error generating PDF:", error);
+    throw error;
+  }
 }
