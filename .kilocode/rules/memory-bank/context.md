@@ -58,6 +58,27 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Add clickable user avatar/name to navigate to Profile page (desktop and mobile)
 - [x] Fix Profile page click: add scroll={false} to navigation links, add loading states and error handling
 - [x] Remove PWA install button from navigation (no longer needed)
+- [x] Fix Service Worker page load issues: changed to network-first strategy with v3 cache
+- [x] Fix achievements page hanging: added error handling, error state, and prevent infinite loops in useGamification hook
+- [x] Fix HeartRateChart: hide min/max lines when data only has avg (single reading per day)
+- [x] Improve HeartRateChart visibility: stronger gradient (0.6 opacity), thicker stroke (3px), always visible dots with white border
+- [x] Fix Vercel build error: add export const dynamic = 'force-dynamic' to dashboard/layout.tsx and page.tsx to fix "Route couldn't be rendered statically because it used headers" error
+- [x] Fix heart rate data: iterate through all datasets to find one with actual heart rate points (not just summary)
+- [x] Add sleep phases detection: fetch sleep stage data from Google Fit API (deep, light, REM)
+- [x] Add sleep phases display: show deep/light/REM/average in Sleep page with averages and distribution
+- [x] Add heart rate zones: estimate time in zones (rest/fat burn/cardio/peak) based on avg HR
+- [x] Fix heart rate zones: now calculates from raw data points when available, uses estimate fallback otherwise
+- [x] Add .env.example with EMAIL_USER and EMAIL_PASS for weekly report exports
+- [x] Add .env.example template for deployment configuration
+- [x] Fix app crash on Vercel: add try/catch around auth() calls in page.tsx and dashboard/layout.tsx
+- [x] Fix app crash on Vercel: use fallback values for auth config (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, AUTH_SECRET) when env vars are missing
+- [x] Fix Service Worker redirect error: add redirect: 'follow' mode and error handling in public/sw.js
+- [x] Fix Activity page calendar overflow on mobile: adjust date picker positioning with left-0 sm:left-auto classes
+- [x] Fix Service Worker syntax error: fixed extra closing parenthesis in sw.js fetch handler
+- [x] Add slide-out navigation menu for mobile with profile access
+- [x] Add clickable user avatar/name to navigate to Profile page (desktop and mobile)
+- [x] Fix Profile page click: add scroll={false} to navigation links, add loading states and error handling
+- [x] Remove PWA install button from navigation (no longer needed)
 - [x] Fix Activity page calendar overflow on mobile: adjust width calculation to prevent overflow
 - [x] Fix Service Worker page load issues: changed to network-first strategy with v3 cache
 - [x] Fix achievements page hanging: added error handling, error state, and prevent infinite loops in useGamification hook
