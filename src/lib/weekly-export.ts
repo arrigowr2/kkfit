@@ -78,11 +78,12 @@ export async function generateWeeklyReport(accessToken: string) {
   console.log(`[WeeklyExport] Generating report from ${startStr} to ${endStr}`);
 
   // Fetch all data for the past week
+  // Note: weight is fetched for 30 days since it's not recorded daily
   const [steps, calories, heartRateRaw, weight, sleep, activity] = await Promise.all([
     getStepsData(accessToken, 7).catch(e => { console.error("Steps error:", e); return []; }),
     getCaloriesData(accessToken, 7).catch(e => { console.error("Calories error:", e); return []; }),
     getHeartRateData(accessToken, 7).catch(e => { console.error("HeartRate error:", e); return { data: [] }; }),
-    getWeightData(accessToken, 7).catch(e => { console.error("Weight error:", e); return []; }),
+    getWeightData(accessToken, 30).catch(e => { console.error("Weight error:", e); return []; }),
     getSleepData(accessToken, 7).catch(e => { console.error("Sleep error:", e); return []; }),
     getActivityData(accessToken, 7).catch(e => { console.error("Activity error:", e); return []; }),
   ]);
@@ -125,10 +126,16 @@ export async function generateWeeklyReport(accessToken: string) {
   // Add weight
   addToMap(weight as any[], "weight", { weight: "weight" });
   
-  // Add sleep
-  addToMap(sleep as any[], "sleep", { 
-    sleepHours: "hours", 
-    sleepMinutes: "minutes" 
+  // Add sleep - duration is in minutes, convert to hours and minutes
+  sleep.forEach((item: any) => {
+    const date = item.date;
+    if (!dateMap.has(date)) {
+      dateMap.set(date, { date });
+    }
+    const entry = dateMap.get(date)!;
+    const duration = item.duration || 0;
+    entry.sleepHours = Math.floor(duration / 60);
+    entry.sleepMinutes = duration % 60;
   });
   
   // Add activity
@@ -533,6 +540,16 @@ export async function generatePDFWithCharts(
     
     // Prepare chart data - get last 7 days in order
     const last7Days = data.slice(-7);
+    
+    // Debug: log data availability
+    console.log('[WeeklyExport] Data for charts:', {
+      dataCount: data.length,
+      last7DaysCount: last7Days.length,
+      hasSleep: last7Days.some((d: any) => d.sleepHours),
+      hasWeight: last7Days.some((d: any) => d.weight),
+      last7DaysSample: last7Days.slice(0, 2)
+    });
+    
     const chartLabels = last7Days.map((d: any) => {
       const date = new Date(d.date);
       return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][date.getDay()];
@@ -569,25 +586,42 @@ export async function generatePDFWithCharts(
     
     // Sleep chart (purple)
     ensureSpace(MIN_Y_FOR_CHART);
-    const sleepChartData = createChartData('sleepMinutes', (v) => (last7Days[chartLabels.indexOf(chartLabels[chartLabels.indexOf('')])]?.sleepHours || 0) * 60 + v);
-    // Fix: properly calculate sleep in minutes
-    const sleepData = chartLabels.map((label, i) => ({
-      label,
-      value: ((last7Days[i]?.sleepHours || 0) * 60 + (last7Days[i]?.sleepMinutes || 0))
-    }));
-    y = drawBarChart(page, sleepData, 'Sono (minutos)', y, { r: 0.545, g: 0.208, b: 0.867 }, 600, helveticaFont, helveticaBold);
+    const hasSleep = last7Days.some((d: any) => d.sleepHours || d.sleepMinutes);
+    if (hasSleep) {
+      const sleepData = chartLabels.map((label, i) => ({
+        label,
+        value: ((last7Days[i]?.sleepHours || 0) * 60 + (last7Days[i]?.sleepMinutes || 0))
+      }));
+      y = drawBarChart(page, sleepData, 'Sono (minutos)', y, { r: 0.545, g: 0.208, b: 0.867 }, 600, helveticaFont, helveticaBold);
+    } else {
+      page.drawText('Sono: Sem dados disponiveis', {
+        x: PAGE_MARGIN,
+        y: y,
+        size: 10,
+        font: helveticaFont,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+    }
     
     y -= 15;
     
-    // Weight chart (green) - only if we have weight data
+    // Weight chart (green) - show even if no data, with message
+    ensureSpace(MIN_Y_FOR_CHART);
     const hasWeight = last7Days.some((d: any) => d.weight);
     if (hasWeight) {
-      ensureSpace(MIN_Y_FOR_CHART);
       const weightData = createChartData('weight');
       y = drawBarChart(page, weightData, 'Peso (kg)', y, { r: 0.173, g: 0.620, b: 0.478 }, 120, helveticaFont, helveticaBold);
-      
-      y -= 15;
+    } else {
+      page.drawText('Peso: Sem dados disponiveis', {
+        x: PAGE_MARGIN,
+        y: y,
+        size: 10,
+        font: helveticaFont,
+        color: rgb(0.5, 0.5, 0.5),
+      });
     }
+    
+    y -= 15;
     
     // Daily data table
     ensureSpace(MIN_Y_FOR_TABLE);
