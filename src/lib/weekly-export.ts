@@ -498,19 +498,21 @@ export async function generatePDFWithCharts(
     const last7Days = data.slice(-7);
     
     // === Two-column layout: Resumo da Semana (left) + Dados Diarios (right) ===
+    // Both sections start at the same Y position for symmetry
     const leftColX = PAGE_MARGIN;
-    const rightColX = 275; // Start of right column for table
+    const rightColX = 300; // Start of right column for table
+    const colStartY = y; // Same starting Y for both columns
     
     // Left column: Resumo da Semana
     page.drawText('Resumo da Semana', {
       x: leftColX,
-      y: y,
+      y: colStartY,
       size: 14,
       font: helveticaBold,
       color: rgb(0.122, 0.161, 0.215),
     });
     
-    y -= 18;
+    let leftColY = colStartY - 18;
     
     const summaryData = [
       { label: 'Passos Totais', value: summary.totalSteps.toLocaleString() },
@@ -523,29 +525,27 @@ export async function generatePDFWithCharts(
     summaryData.forEach((item) => {
       page.drawText(`${item.label}: ${item.value}`, {
         x: leftColX + 10,
-        y: y,
+        y: leftColY,
         size: 10,
         font: helveticaFont,
         color: rgb(0.216, 0.255, 0.318),
       });
-      y -= 14;
+      leftColY -= 14;
     });
     
-    // Right column: Dados Diarios table (at same Y level as summary title)
-    const tableStartY = y + 18 + 14; // Go back up to start table at same level as summary title
-    
+    // Right column: Dados Diarios table (aligned with left column)
     page.drawText('Dados Diarios', {
       x: rightColX,
-      y: tableStartY,
+      y: colStartY,
       size: 14,
       font: helveticaBold,
       color: rgb(0.122, 0.161, 0.215),
     });
     
-    let tableY = tableStartY - 18;
+    let tableY = colStartY - 18;
     
     // Table headers - more compact
-    const tableColWidths = [55, 50, 50, 45, 40, 40, 40];
+    const tableColWidths = [45, 42, 40, 38, 35, 35, 35];
     const tableHeaders = ['Data', 'Passos', 'Cal', 'FC Med', 'FC Min', 'Peso', 'Sono'];
     let tableX = rightColX;
     
@@ -598,8 +598,8 @@ export async function generatePDFWithCharts(
       tableY -= 12;
     });
     
-    // Use the lower of the two positions (summary end or table end)
-    y = Math.min(y, tableY);
+    // Use the lower of the two positions (summary end or table end) - both columns aligned
+    y = Math.min(leftColY, tableY);
     
     y -= 20;
     
