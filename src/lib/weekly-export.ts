@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { getStepsData, getCaloriesData, getHeartRateData, getWeightData, getSleepData, getActivityData } from "./google-fit";
+import PDFDocument from "pdfkit";
 
 const CREDENTIALS_COOKIE_NAME = "kkfit_credentials";
 
@@ -188,4 +189,93 @@ export function generateCSV(data: any[]): string {
   ]);
 
   return [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+}
+
+export async function generatePDF(data: any[], startDate: string, endDate: string, summary: any): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50 });
+      const chunks: Buffer[] = [];
+      
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // Title
+      doc.fontSize(24).fillColor('#2563eb').text('Relatório Semanal de Fitness', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.fontSize(14).fillColor('#666').text(`Período: ${startDate} a ${endDate}`, { align: 'center' });
+      doc.moveDown(2);
+
+      // Summary section
+      doc.fontSize(18).fillColor('#1f2937').text('Resumo da Semana', { underline: true });
+      doc.moveDown(1);
+
+      const summaryData = [
+        { label: 'Passos Totais', value: summary.totalSteps.toLocaleString(), icon: '🚶' },
+        { label: 'Calorias Queimadas', value: summary.totalCalories.toLocaleString(), icon: '🔥' },
+        { label: 'FC Média', value: `${summary.avgHeartRate} bpm`, icon: '❤️' },
+        { label: 'Peso Médio', value: `${summary.avgWeight} kg`, icon: '⚖️' },
+        { label: 'Horas de Sono', value: `${Math.round(summary.totalSleepHours)}h`, icon: '😴' },
+      ];
+
+      summaryData.forEach((item) => {
+        doc.fontSize(12).fillColor('#374151').text(`${item.icon} ${item.label}: `, { continued: true });
+        doc.fontSize(12).fillColor('#1f2937').text(item.value);
+      });
+
+      doc.moveDown(2);
+
+      // Daily data table
+      doc.fontSize(18).fillColor('#1f2937').text('Dados Diários', { underline: true });
+      doc.moveDown(1);
+
+      // Table headers
+      const tableTop = doc.y;
+      const colWidths = [70, 60, 60, 60, 60, 50, 50];
+      const headers = ['Data', 'Passos', 'Calorias', 'FC Média', 'FC Mín', 'Peso', 'Sono'];
+      let xPos = 50;
+
+      doc.fontSize(9).fillColor('#6b7280');
+      headers.forEach((header, i) => {
+        doc.text(header, xPos, tableTop, { width: colWidths[i], align: 'left' });
+        xPos += colWidths[i];
+      });
+
+      doc.moveDown(1);
+      doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#e5e7eb').stroke();
+      doc.moveDown(0.5);
+
+      // Table rows
+      doc.fontSize(8).fillColor('#374151');
+      data.forEach((row) => {
+        if (doc.y > 700) {
+          doc.addPage();
+        }
+        xPos = 50;
+        const rowData = [
+          row.date || '-',
+          (row.steps || '-').toString(),
+          (row.calories || '-').toString(),
+          (row.heartRateAvg || '-').toString(),
+          (row.heartRateMin || '-').toString(),
+          (row.weight || '-').toString(),
+          row.sleepHours ? `${row.sleepHours}h` : '-'
+        ];
+        rowData.forEach((cell, i) => {
+          doc.text(cell, xPos, doc.y, { width: colWidths[i], align: 'left' });
+          xPos += colWidths[i];
+        });
+        doc.moveDown(0.5);
+      });
+
+      // Footer
+      doc.moveDown(2);
+      doc.fontSize(10).fillColor('#9ca3af').text('Gerado automaticamente pelo FitDashboard', { align: 'center' });
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
 }

@@ -94,6 +94,7 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix Heart page showing no data: changed from ?date=today to ?date=total and filter on client side to last 30 days
 - [x] Fix heart zones bars: add 30 days label, cap percentage at 100%
 - [x] Fix email attachments: convert content to Buffer with proper encoding for CSV and JSON
+- [x] Fix heart zones percentages: calculate relative to total time in all zones instead of fixed 43200 minutes
 - [x] Fix email export: use HTTP-only cookies for credentials persistence (fixes serverless memory reset issue)
 - [x] Add .env.example with EMAIL_USER and EMAIL_PASS variables
 

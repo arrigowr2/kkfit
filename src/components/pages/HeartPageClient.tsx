@@ -275,27 +275,30 @@ export default function HeartPageClient() {
               </div>
             </div>
             <div className="space-y-2">
-              {[
-                { label: "Repouso", value: timeInZones.rest, color: "bg-blue-500", total: 43200 },
-                { label: "Queima Gordura", value: timeInZones.fatBurn, color: "bg-green-500", total: 43200 },
-                { label: "Cardio", value: timeInZones.cardio, color: "bg-yellow-500", total: 43200 },
-                { label: "Pico", value: timeInZones.peak, color: "bg-red-500", total: 43200 },
-              ].map((item) => (
-                <div key={item.label}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-slate-300">{item.label}</span>
-                    <span className="text-sm font-medium text-slate-400">
-                      {Math.min(Math.round((item.value / item.total) * 100), 100)}%
-                    </span>
+              {(() => {
+                const total = timeInZones.rest + timeInZones.fatBurn + timeInZones.cardio + timeInZones.peak;
+                return [
+                  { label: "Repouso", value: timeInZones.rest, color: "bg-blue-500", total },
+                  { label: "Queima Gordura", value: timeInZones.fatBurn, color: "bg-green-500", total },
+                  { label: "Cardio", value: timeInZones.cardio, color: "bg-yellow-500", total },
+                  { label: "Pico", value: timeInZones.peak, color: "bg-red-500", total },
+                ].map((item) => (
+                  <div key={item.label}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-slate-300">{item.label}</span>
+                      <span className="text-sm font-medium text-slate-400">
+                        {total > 0 ? Math.min(Math.round((item.value / total) * 100), 100) : 0}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-2 rounded-full ${item.color}`}
+                        style={{ width: `${total > 0 ? Math.min((item.value / total) * 100, 100) : 0}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                    <div
-                      className={`h-2 rounded-full ${item.color}`}
-                      style={{ width: `${Math.min((item.value / item.total) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
 
