@@ -19,12 +19,25 @@ export interface HeartRateData {
   avg: number;
   min: number;
   max: number;
+  // Heart rate zones (new fields)
+  restingHR?: number;      // Resting heart rate
+  timeInZones?: {
+    rest: number;          // Time in rest zone (minutes)
+    fatBurn: number;       // Time in fat burn zone (minutes)
+    cardio: number;        // Time in cardio zone (minutes)
+    peak: number;          // Time in peak zone (minutes)
+  };
 }
 
 export interface SleepData {
   date: string;
   duration: number; // in minutes
   quality: string;
+  // Sleep phases (new fields)
+  deepSleep?: number;      // Deep sleep in minutes
+  lightSleep?: number;     // Light sleep in minutes
+  remSleep?: number;       // REM sleep in minutes
+  awakeTime?: number;      // Awake time in minutes
 }
 
 export interface WeightData {
@@ -686,8 +699,12 @@ async function fetchSleepSessions(
   const sessions = data.session || [];
   console.log("[Sleep Sessions] Found sessions:", sessions.length);
   
+  // Also try to get sleep stage data (deep, light, REM)
+  const sleepStages = await fetchSleepStages(accessToken, startTime, endTime);
+  console.log("[Sleep Sessions] Sleep stages found:", sleepStages.length, "records");
+  
   // Group sleep sessions by date
-  const sleepByDate: Record<string, { duration: number; segments: number }> = {};
+  const sleepByDate: Record<string, { duration: number; segments: number; deepSleep: number; lightSleep: number; remSleep: number; awakeTime: number }> = {};
   
   for (const session of sessions) {
     const sessionStart = parseInt(session.startTimeMillis);
@@ -704,10 +721,21 @@ async function fetchSleepSessions(
     })();
     
     if (!sleepByDate[date]) {
-      sleepByDate[date] = { duration: 0, segments: 0 };
+      sleepByDate[date] = { duration: 0, segments: 0, deepSleep: 0, lightSleep: 0, remSleep: 0, awakeTime: 0 };
     }
     sleepByDate[date].duration += duration;
     sleepByDate[date].segments += 1;
+  }
+  
+  // Add sleep stage data if available
+  for (const stage of sleepStages) {
+    const date = stage.date;
+    if (sleepByDate[date]) {
+      sleepByDate[date].deepSleep = stage.deepSleep;
+      sleepByDate[date].lightSleep = stage.lightSleep;
+      sleepByDate[date].remSleep = stage.remSleep;
+      sleepByDate[date].awakeTime = stage.awakeTime;
+    }
   }
   
   // Convert to SleepData array
@@ -720,9 +748,101 @@ async function fetchSleepSessions(
           : totalMinutes >= 360
             ? "Regular"
             : "Insuficiente";
-      return { date, duration: totalMinutes, quality };
+      return { 
+        date, 
+        duration: totalMinutes, 
+        quality,
+        deepSleep: data.deepSleep || undefined,
+        lightSleep: data.lightSleep || undefined,
+        remSleep: data.remSleep || undefined,
+        awakeTime: data.awakeTime || undefined
+      };
     })
     .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Helper function to fetch sleep stages (deep, light, REM) from Google Fit Data API
+async function fetchSleepStages(
+  accessToken: string,
+  startTime: Date,
+  endTime: Date
+): Promise<{ date: string; deepSleep: number; lightSleep: number; remSleep: number; awakeTime: number }[]> {
+  const body = {
+    aggregateBy: [
+      {
+        dataTypeName: "com.google.sleep.stage",
+      },
+    ],
+    bucketByTime: { durationMillis: 86400000 },
+    startTimeMillis: startTime.getTime(),
+    endTimeMillis: endTime.getTime(),
+  };
+
+  console.log("[Sleep Stages] Request body:", JSON.stringify(body, null, 2));
+  
+  try {
+    const data = await fetchFitData(accessToken, "/dataset:aggregate", body);
+    console.log("[Sleep Stages] Response:", JSON.stringify(data, null, 2)?.substring(0, 2000));
+    
+    const result: { date: string; deepSleep: number; lightSleep: number; remSleep: number; awakeTime: number }[] = [];
+    
+    if (data.bucket) {
+      for (const bucket of data.bucket) {
+        const date = (() => {
+          const d = new Date(parseInt(bucket.startTimeMillis));
+          const year = d.getUTCFullYear();
+          const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(d.getUTCDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        })();
+        
+        let deepSleep = 0, lightSleep = 0, remSleep = 0, awakeTime = 0;
+        
+        // Sleep stage values: 0=awake, 1=light, 2=deep, 3=REM (based on Google Fit docs)
+        if (bucket.dataset?.[0]?.point?.length > 0) {
+          for (const point of bucket.dataset[0].point) {
+            const start = parseInt(point.startTimeNanos) / 1_000_000;
+            const end = parseInt(point.endTimeNanos) / 1_000_000;
+            const duration = (end - start) / 60000; // minutes
+            
+            for (const value of point.value) {
+              const intValue = value.intVal ?? value;
+              switch (intValue) {
+                case 0: // Awake
+                  awakeTime += duration;
+                  break;
+                case 1: // Light
+                  lightSleep += duration;
+                  break;
+                case 2: // Deep
+                  deepSleep += duration;
+                  break;
+                case 3: // REM
+                  remSleep += duration;
+                  break;
+              }
+            }
+          }
+        }
+        
+        if (deepSleep > 0 || lightSleep > 0 || remSleep > 0 || awakeTime > 0) {
+          result.push({
+            date,
+            deepSleep: Math.round(deepSleep),
+            lightSleep: Math.round(lightSleep),
+            remSleep: Math.round(remSleep),
+            awakeTime: Math.round(awakeTime)
+          });
+        }
+      }
+    }
+    
+    console.log("[Sleep Stages] Parsed result:", result.length, "records", result);
+    return result;
+  } catch (error) {
+    console.log("[Sleep Stages] Error or no data:", error);
+    return [];
+  }
 }
 
 export async function getSleepData(
@@ -776,6 +896,18 @@ export async function getSleepData(
   const data = await fetchFitData(accessToken, "/dataset:aggregate", body);
   console.log("[Sleep] Aggregate API response:", JSON.stringify(data, null, 2)?.substring(0, 2000));
 
+  // Also try to get sleep stage data for the fallback
+  const sleepStages = await fetchSleepStages(accessToken, startTime, endTime);
+  const stagesByDate: Record<string, { deepSleep: number; lightSleep: number; remSleep: number; awakeTime: number }> = {};
+  for (const stage of sleepStages) {
+    stagesByDate[stage.date] = {
+      deepSleep: stage.deepSleep,
+      lightSleep: stage.lightSleep,
+      remSleep: stage.remSleep,
+      awakeTime: stage.awakeTime
+    };
+  }
+
   const result: SleepData[] = [];
   if (data.bucket) {
     console.log("[Sleep] Number of buckets:", data.bucket.length);
@@ -803,7 +935,16 @@ export async function getSleepData(
             : totalMinutes >= 360
               ? "Regular"
               : "Insuficiente";
-        result.push({ date, duration: Math.round(totalMinutes), quality });
+        const stages = stagesByDate[date];
+        result.push({ 
+          date, 
+          duration: Math.round(totalMinutes), 
+          quality,
+          deepSleep: stages?.deepSleep,
+          lightSleep: stages?.lightSleep,
+          remSleep: stages?.remSleep,
+          awakeTime: stages?.awakeTime
+        });
       }
     }
   }

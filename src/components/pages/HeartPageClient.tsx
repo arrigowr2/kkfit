@@ -10,6 +10,13 @@ interface HeartRateData {
   avg: number;
   min: number;
   max: number;
+  restingHR?: number;
+  timeInZones?: {
+    rest: number;
+    fatBurn: number;
+    cardio: number;
+    peak: number;
+  };
 }
 
 function getZone(bpm: number): { label: string; color: string; bg: string } {
@@ -17,6 +24,50 @@ function getZone(bpm: number): { label: string; color: string; bg: string } {
   if (bpm <= 100) return { label: "Normal", color: "text-green-400", bg: "bg-green-500/10 border-green-500/20" };
   if (bpm <= 120) return { label: "Elevado", color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20" };
   return { label: "Alto", color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" };
+}
+
+// Estimate heart rate zones based on average HR
+// Using simplified zones: Rest (<60), Fat Burn (60-70% max), Cardio (70-85% max), Peak (>85% max)
+function estimateTimeInZones(avgBpm: number, maxBpm: number, minBpm: number): { rest: number; fatBurn: number; cardio: number; peak: number } {
+  // Estimate max HR (simplified: 220 - 30 years old as default)
+  const estimatedMaxHR = maxBpm > 0 ? maxBpm : 190;
+  const restingHR = minBpm > 0 ? minBpm : 60;
+  
+  // Zone boundaries (% of max HR)
+  const fatBurnMin = Math.round(estimatedMaxHR * 0.6);
+  const cardioMin = Math.round(estimatedMaxHR * 0.7);
+  const peakMin = Math.round(estimatedMaxHR * 0.85);
+  
+  // Estimate time distribution (simplified model based on avg HR)
+  let rest = 0, fatBurn = 0, cardio = 0, peak = 0;
+  
+  if (avgBpm < fatBurnMin) {
+    // Mostly resting
+    rest = 16 * 60; // ~16 hours
+    fatBurn = 1 * 60;
+    cardio = 0;
+    peak = 0;
+  } else if (avgBpm < cardioMin) {
+    // Mix of rest and fat burn
+    rest = 10 * 60;
+    fatBurn = 6 * 60;
+    cardio = 1 * 60;
+    peak = 0;
+  } else if (avgBpm < peakMin) {
+    // Active day
+    rest = 8 * 60;
+    fatBurn = 6 * 60;
+    cardio = 3 * 60;
+    peak = 0;
+  } else {
+    // Very active day
+    rest = 8 * 60;
+    fatBurn = 4 * 60;
+    cardio = 4 * 60;
+    peak = 1 * 60;
+  }
+  
+  return { rest, fatBurn, cardio, peak };
 }
 
 export default function HeartPageClient() {
@@ -75,6 +126,9 @@ export default function HeartPageClient() {
   const minBpm = globalMinBpm;
   const maxBpm = globalMaxBpm;
   const zone = getZone(avgBpm);
+  
+  // Calculate estimated time in zones
+  const timeInZones = estimateTimeInZones(avgBpm, maxBpm, minBpm);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -149,10 +203,74 @@ export default function HeartPageClient() {
             <HeartRateChart data={data} />
           </div>
 
+          {/* Zones */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5">
+            <h3 className="text-white font-semibold text-sm sm:text-base mb-3 sm:mb-4">
+              Tempo Estimado por Zona
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="bg-slate-800 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                  <span className="text-slate-400 text-xs">Repouso</span>
+                </div>
+                <p className="text-lg font-bold text-blue-400">{Math.floor(timeInZones.rest / 60)}h {timeInZones.rest % 60}min</p>
+                <p className="text-slate-500 text-xs">&lt; {Math.round(maxBpm * 0.6)} bpm</p>
+              </div>
+              <div className="bg-slate-800 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                  <span className="text-slate-400 text-xs">Queima Gordura</span>
+                </div>
+                <p className="text-lg font-bold text-green-400">{Math.floor(timeInZones.fatBurn / 60)}h {timeInZones.fatBurn % 60}min</p>
+                <p className="text-slate-500 text-xs">{Math.round(maxBpm * 0.6)}-{Math.round(maxBpm * 0.7)} bpm</p>
+              </div>
+              <div className="bg-slate-800 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                  <span className="text-slate-400 text-xs">Cardio</span>
+                </div>
+                <p className="text-lg font-bold text-yellow-400">{Math.floor(timeInZones.cardio / 60)}h {timeInZones.cardio % 60}min</p>
+                <p className="text-slate-500 text-xs">{Math.round(maxBpm * 0.7)}-{Math.round(maxBpm * 0.85)} bpm</p>
+              </div>
+              <div className="bg-slate-800 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                  <span className="text-slate-400 text-xs">Pico</span>
+                </div>
+                <p className="text-lg font-bold text-red-400">{Math.floor(timeInZones.peak / 60)}h {timeInZones.peak % 60}min</p>
+                <p className="text-slate-500 text-xs">&gt; {Math.round(maxBpm * 0.85)} bpm</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {[
+                { label: "Repouso", value: timeInZones.rest, color: "bg-blue-500", total: 1440 },
+                { label: "Queima Gordura", value: timeInZones.fatBurn, color: "bg-green-500", total: 1440 },
+                { label: "Cardio", value: timeInZones.cardio, color: "bg-yellow-500", total: 1440 },
+                { label: "Pico", value: timeInZones.peak, color: "bg-red-500", total: 1440 },
+              ].map((item) => (
+                <div key={item.label}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-slate-300">{item.label}</span>
+                    <span className="text-sm font-medium text-slate-400">
+                      {Math.round((item.value / item.total) * 100)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-800 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full ${item.color}`}
+                      style={{ width: `${(item.value / item.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Zones reference */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-5">
             <h3 className="text-white font-semibold text-sm sm:text-base mb-3 sm:mb-4">
-              Zonas de Frequência Cardíaca
+              Referência de Zonas
             </h3>
             <div className="space-y-3">
               {[

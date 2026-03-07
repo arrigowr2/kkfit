@@ -9,6 +9,10 @@ interface SleepData {
   date: string;
   duration: number;
   quality: string;
+  deepSleep?: number;
+  lightSleep?: number;
+  remSleep?: number;
+  awakeTime?: number;
 }
 
 export default function SleepPageClient() {
@@ -44,6 +48,23 @@ export default function SleepPageClient() {
 
   const longestSleep = data.length > 0 ? Math.max(...data.map((d) => d.duration)) : 0;
   const shortestSleep = data.length > 0 ? Math.min(...data.map((d) => d.duration)) : 0;
+
+  // Calculate sleep phases averages
+  const dataWithPhases = data.filter(d => d.deepSleep !== undefined || d.lightSleep !== undefined || d.remSleep !== undefined);
+  const avgDeepSleep = dataWithPhases.length > 0 
+    ? Math.round(dataWithPhases.reduce((a, b) => a + (b.deepSleep || 0), 0) / dataWithPhases.length) 
+    : 0;
+  const avgLightSleep = dataWithPhases.length > 0 
+    ? Math.round(dataWithPhases.reduce((a, b) => a + (b.lightSleep || 0), 0) / dataWithPhases.length) 
+    : 0;
+  const avgRemSleep = dataWithPhases.length > 0 
+    ? Math.round(dataWithPhases.reduce((a, b) => a + (b.remSleep || 0), 0) / dataWithPhases.length) 
+    : 0;
+  const avgAwakeTime = dataWithPhases.length > 0 
+    ? Math.round(dataWithPhases.reduce((a, b) => a + (b.awakeTime || 0), 0) / dataWithPhases.length) 
+    : 0;
+
+  const hasSleepPhases = dataWithPhases.length > 0;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -191,6 +212,66 @@ export default function SleepPageClient() {
               ))}
             </div>
           </div>
+
+          {/* Sleep Phases */}
+          {hasSleepPhases && (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+              <h3 className="text-white font-semibold mb-4">
+                Fases do Sono
+              </h3>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div className="bg-slate-800 rounded-xl p-4">
+                  <p className="text-slate-400 text-xs uppercase tracking-wide mb-1">Sono Profundo</p>
+                  <p className="text-xl font-bold text-blue-400">{avgDeepSleep}min</p>
+                  <p className="text-xs text-slate-500 mt-1">Reparação física</p>
+                </div>
+                <div className="bg-slate-800 rounded-xl p-4">
+                  <p className="text-slate-400 text-xs uppercase tracking-wide mb-1">Sono Leve</p>
+                  <p className="text-xl font-bold text-cyan-400">{avgLightSleep}min</p>
+                  <p className="text-xs text-slate-500 mt-1">Transição e descanso</p>
+                </div>
+                <div className="bg-slate-800 rounded-xl p-4">
+                  <p className="text-slate-400 text-xs uppercase tracking-wide mb-1">Sono REM</p>
+                  <p className="text-xl font-bold text-purple-400">{avgRemSleep}min</p>
+                  <p className="text-xs text-slate-500 mt-1">Consolidação da memória</p>
+                </div>
+                <div className="bg-slate-800 rounded-xl p-4">
+                  <p className="text-slate-400 text-xs uppercase tracking-wide mb-1">Tempo Acordado</p>
+                  <p className="text-xl font-bold text-amber-400">{avgAwakeTime}min</p>
+                  <p className="text-xs text-slate-500 mt-1">Interrupções</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <p className="text-xs text-slate-400 mb-2">Distribuição média das fases:</p>
+                {[
+                  { label: "Sono Profundo", value: avgDeepSleep, color: "bg-blue-500", textColor: "text-blue-400" },
+                  { label: "Sono Leve", value: avgLightSleep, color: "bg-cyan-500", textColor: "text-cyan-400" },
+                  { label: "Sono REM", value: avgRemSleep, color: "bg-purple-500", textColor: "text-purple-400" },
+                  { label: "Acordado", value: avgAwakeTime, color: "bg-amber-500", textColor: "text-amber-400" },
+                ].map((item) => {
+                  const total = avgDeepSleep + avgLightSleep + avgRemSleep + avgAwakeTime;
+                  return (
+                    <div key={item.label}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-slate-300">{item.label}</span>
+                        <span className={`text-sm font-medium ${item.textColor}`}>
+                          {item.value}min ({total > 0 ? Math.round((item.value / total) * 100) : 0}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-800 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${item.color}`}
+                          style={{
+                            width: `${total > 0 ? (item.value / total) * 100 : 0}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* History table */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
