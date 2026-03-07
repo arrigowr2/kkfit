@@ -127,8 +127,23 @@ export default function HeartPageClient() {
   const maxBpm = globalMaxBpm;
   const zone = getZone(avgBpm);
   
-  // Calculate estimated time in zones
-  const timeInZones = estimateTimeInZones(avgBpm, maxBpm, minBpm);
+  // Use timeInZones from backend if available, otherwise calculate estimate
+  // Aggregate timeInZones from all days with data
+  const timeInZonesFromData = data.reduce(
+    (acc, day) => ({
+      rest: acc.rest + (day.timeInZones?.rest || 0),
+      fatBurn: acc.fatBurn + (day.timeInZones?.fatBurn || 0),
+      cardio: acc.cardio + (day.timeInZones?.cardio || 0),
+      peak: acc.peak + (day.timeInZones?.peak || 0),
+    }),
+    { rest: 0, fatBurn: 0, cardio: 0, peak: 0 }
+  );
+  
+  // Use backend data if available, otherwise calculate estimate
+  const hasTimeInZonesData = timeInZonesFromData.rest + timeInZonesFromData.fatBurn + timeInZonesFromData.cardio + timeInZonesFromData.peak > 0;
+  const timeInZones = hasTimeInZonesData 
+    ? timeInZonesFromData 
+    : estimateTimeInZones(avgBpm, maxBpm, minBpm);
 
   return (
     <div className="space-y-4 sm:space-y-6">

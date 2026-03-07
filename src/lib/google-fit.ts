@@ -14,6 +14,92 @@ export interface DailyCalories {
   calories: number;
 }
 
+// Helper function to calculate heart rate zones from raw values
+function calculateHeartRateZones(values: number[], minBpm: number): {
+  rest: number;
+  fatBurn: number;
+  cardio: number;
+  peak: number;
+} {
+  if (values.length === 0) {
+    return { rest: 0, fatBurn: 0, cardio: 0, peak: 0 };
+  }
+
+  // Estimate max HR (using 220 - age, default 30 years = 190)
+  const maxBpm = 190;
+  
+  // Zone boundaries (% of max HR)
+  const fatBurnMin = Math.round(maxBpm * 0.6);
+  const cardioMin = Math.round(maxBpm * 0.7);
+  const peakMin = Math.round(maxBpm * 0.85);
+  
+  let rest = 0, fatBurn = 0, cardio = 0, peak = 0;
+  
+  // Each value represents a point in time (assume ~5 min intervals for simplicity)
+  const minutesPerPoint = 5;
+  
+  for (const value of values) {
+    if (value < fatBurnMin) {
+      rest += minutesPerPoint;
+    } else if (value < cardioMin) {
+      fatBurn += minutesPerPoint;
+    } else if (value < peakMin) {
+      cardio += minutesPerPoint;
+    } else {
+      peak += minutesPerPoint;
+    }
+  }
+  
+  return { rest, fatBurn, cardio, peak };
+}
+
+// Helper function to estimate heart rate zones from average (when raw data unavailable)
+function estimateTimeInZonesFromAvg(avgBpm: number, maxBpm: number, minBpm: number): {
+  rest: number;
+  fatBurn: number;
+  cardio: number;
+  peak: number;
+} {
+  // Estimate max HR if not provided
+  const estimatedMaxHR = maxBpm > 0 ? maxBpm : 190;
+  
+  // Zone boundaries (% of max HR)
+  const fatBurnMin = Math.round(estimatedMaxHR * 0.6);
+  const cardioMin = Math.round(estimatedMaxHR * 0.7);
+  const peakMin = Math.round(estimatedMaxHR * 0.85);
+  
+  // Estimate time distribution based on avg HR
+  let rest = 0, fatBurn = 0, cardio = 0, peak = 0;
+  
+  if (avgBpm < fatBurnMin) {
+    // Mostly resting
+    rest = 16 * 60; // ~16 hours
+    fatBurn = 1 * 60;
+    cardio = 0;
+    peak = 0;
+  } else if (avgBpm < cardioMin) {
+    // Mix of rest and fat burn
+    rest = 10 * 60;
+    fatBurn = 6 * 60;
+    cardio = 1 * 60;
+    peak = 0;
+  } else if (avgBpm < peakMin) {
+    // Active day
+    rest = 8 * 60;
+    fatBurn = 6 * 60;
+    cardio = 3 * 60;
+    peak = 0;
+  } else {
+    // Very active day
+    rest = 8 * 60;
+    fatBurn = 4 * 60;
+    cardio = 4 * 60;
+    peak = 1 * 60;
+  }
+  
+  return { rest, fatBurn, cardio, peak };
+}
+
 export interface HeartRateData {
   date: string;
   avg: number;
@@ -483,8 +569,10 @@ export async function getHeartRateData(
         const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
         const min = Math.round(Math.min(...values));
         const max = Math.round(Math.max(...values));
+        // Calculate heart rate zones from raw values
+        const timeInZones = calculateHeartRateZones(values, min);
         console.log("[HeartRate]", date, "- min:", min, "max:", max, "avg:", avg, "count:", values.length);
-        result.push({ date, avg, min, max });
+        result.push({ date, avg, min, max, timeInZones });
       }
     }
     
@@ -640,7 +728,9 @@ async function getHeartRateDataWithSummary(
         // If min/max are still 0, use avg as fallback (single reading)
         if (min === 0) min = avg;
         if (max === 0) max = avg;
-        result.push({ date, avg, min, max });
+        // Estimate time in zones based on avg HR (for aggregate data without raw points)
+        const timeInZones = estimateTimeInZonesFromAvg(avg, max, min);
+        result.push({ date, avg, min, max, timeInZones });
       }
     }
   }
