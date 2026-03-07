@@ -97,6 +97,10 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Fix heart zones percentages: calculate relative to total time in all zones instead of fixed 43200 minutes
 - [x] Fix PDF generation error: switch from pdfkit to pdf-lib (pdfkit AFM font files not available in Vercel)
 - [x] Fix WinAnsi encoding error: remove emojis from PDF generation (Helvetica doesn't support Unicode)
+- [x] Fix PDF charts layout: proper bar positioning from bottom up, page breaks, reduced chart height
+- [x] Fix PDF sleep data: properly map duration (minutes) to sleepHours/sleepMinutes fields
+- [x] Fix PDF weight data: fetch 30 days instead of 7 for better data availability
+- [x] Add "No data available" messages for sleep and weight charts in PDF when empty
 - [x] Fix email export: use HTTP-only cookies for credentials persistence (fixes serverless memory reset issue)
 - [x] Add .env.example with EMAIL_USER and EMAIL_PASS variables
 
