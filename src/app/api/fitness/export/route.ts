@@ -153,8 +153,9 @@ export async function GET(request: Request) {
   // Verify cron secret for security
   const cronSecret = request.headers.get("x-cron-secret");
   const expectedSecret = process.env.CRON_SECRET;
+  const isVercelCron = !!request.headers.get("x-vercel-id");
 
-  if (expectedSecret && cronSecret !== expectedSecret) {
+  if (expectedSecret && cronSecret !== expectedSecret && !isVercelCron) {
     console.log("[Export] Unauthorized cron attempt");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

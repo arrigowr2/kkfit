@@ -1,8 +1,10 @@
-import { cookies } from "next/headers";
 import { getStepsData, getCaloriesData, getHeartRateData, getWeightData, getSleepData, getActivityData } from "./google-fit";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { writeFile, readFile } from "fs/promises";
+import { existsSync } from "fs";
+import path from "path";
 
-const CREDENTIALS_COOKIE_NAME = "kkfit_credentials";
+const CREDENTIALS_FILE = path.join(process.cwd(), ".cache", "kkfit_credentials.json");
 
 interface StoredCredentials {
   refreshToken: string;
@@ -10,7 +12,7 @@ interface StoredCredentials {
   lastExport?: string;
 }
 
-// Store credentials in a secure HTTP-only cookie (persists across requests in Vercel)
+// Store credentials in a server-side file (accessible by cron jobs)
 export async function storeCredentials(refreshToken: string, email: string) {
   const credentials: StoredCredentials = { 
     refreshToken, 
@@ -18,30 +20,29 @@ export async function storeCredentials(refreshToken: string, email: string) {
     lastExport: new Date().toISOString() 
   };
   
-  const cookieStore = await cookies();
-  cookieStore.set(CREDENTIALS_COOKIE_NAME, JSON.stringify(credentials), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
-    path: "/",
-  });
-  
-  console.log("[WeeklyExport] Credentials stored successfully in cookie");
+  try {
+    const dir = path.dirname(CREDENTIALS_FILE);
+    if (!existsSync(dir)) {
+      const { mkdirSync } = await import("fs");
+      mkdirSync(dir, { recursive: true });
+    }
+    await writeFile(CREDENTIALS_FILE, JSON.stringify(credentials, null, 2), "utf-8");
+    console.log("[WeeklyExport] Credentials stored successfully in file");
+  } catch (error) {
+    console.error("[WeeklyExport] Error storing credentials:", error);
+    throw error;
+  }
 }
 
 export async function getStoredCredentials(): Promise<StoredCredentials | null> {
   try {
-    const cookieStore = await cookies();
-    const credentialsCookie = cookieStore.get(CREDENTIALS_COOKIE_NAME);
-    
-    if (!credentialsCookie?.value) {
+    if (!existsSync(CREDENTIALS_FILE)) {
       return null;
     }
-    
-    return JSON.parse(credentialsCookie.value) as StoredCredentials;
+    const raw = await readFile(CREDENTIALS_FILE, "utf-8");
+    return JSON.parse(raw) as StoredCredentials;
   } catch (error) {
-    console.error("[WeeklyExport] Error reading credentials cookie:", error);
+    console.error("[WeeklyExport] Error reading credentials file:", error);
     return null;
   }
 }
