@@ -1,10 +1,10 @@
 import { getStepsData, getCaloriesData, getHeartRateData, getWeightData, getSleepData, getActivityData } from "./google-fit";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { writeFile, readFile } from "fs/promises";
+import { writeFile, readFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 
-const CREDENTIALS_FILE = path.join(process.cwd(), ".cache", "kkfit_credentials.json");
+const CREDENTIALS_FILE = path.join(process.env.TMPDIR || "/tmp", "kkfit_credentials.json");
 
 interface StoredCredentials {
   refreshToken: string;
@@ -23,8 +23,7 @@ export async function storeCredentials(refreshToken: string, email: string) {
   try {
     const dir = path.dirname(CREDENTIALS_FILE);
     if (!existsSync(dir)) {
-      const { mkdirSync } = await import("fs");
-      mkdirSync(dir, { recursive: true });
+      await mkdir(dir, { recursive: true });
     }
     await writeFile(CREDENTIALS_FILE, JSON.stringify(credentials, null, 2), "utf-8");
     console.log("[WeeklyExport] Credentials stored successfully in file");
