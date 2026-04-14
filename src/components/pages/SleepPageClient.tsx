@@ -20,7 +20,12 @@ export default function SleepPageClient() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/fitness/summary")
+    const selectedMonth = localStorage.getItem("kkfit_selected_month");
+    const url = selectedMonth 
+      ? `/api/fitness/summary?month=${selectedMonth}` 
+      : "/api/fitness/summary";
+    
+    fetch(url)
       .then((r) => r.json())
       .then((d) => {
         setData(d.sleep || []);

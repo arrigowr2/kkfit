@@ -350,7 +350,10 @@ export default function DashboardClient() {
     setSelectedMonth(monthValue);
     if (monthValue) {
       setSelectedMode("month");
+      localStorage.setItem("kkfit_selected_month", monthValue);
       fetchData("month", undefined, monthValue);
+    } else {
+      localStorage.removeItem("kkfit_selected_month");
     }
   }, [fetchData]);
 

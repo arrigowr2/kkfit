@@ -76,8 +76,12 @@ export default function HeartPageClient() {
 
   useEffect(() => {
     console.log("[HeartPage] Fetching heart rate data...");
+    const selectedMonth = localStorage.getItem("kkfit_selected_month");
+    const url = selectedMonth 
+      ? `/api/fitness/summary?month=${selectedMonth}` 
+      : "/api/fitness/summary?date=total";
     // Use date=total to get all historical data (no date filtering on server)
-    fetch("/api/fitness/summary?date=total")
+    fetch(url)
       .then((r) => {
         console.log("[HeartPage] Response status:", r.status);
         return r.json();

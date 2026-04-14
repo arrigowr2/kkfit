@@ -43,9 +43,35 @@ export default function ActivityPageClient() {
     { label: "Ontem", value: "yesterday", mode: "yesterday" as const },
   ];
 
-  const fetchData = (date: string, mode: string) => {
-    console.log("[Activity] fetchData called:", { date, mode });
+  const fetchData = (date: string, mode: string, month?: string) => {
+    console.log("[Activity] fetchData called:", { date, mode, month });
     setLoading(true);
+    
+    // Check if there's a selected month in localStorage (from dashboard)
+    const selectedMonth = month || localStorage.getItem("kkfit_selected_month");
+    
+    // If month is selected, use month mode
+    if (selectedMonth) {
+      const url = `/api/fitness/summary?month=${selectedMonth}`;
+      console.log("[Activity] Fetching URL (month):", url);
+      fetch(url)
+        .then((r) => r.json())
+        .then((d) => {
+          console.log("[Activity] Data received:", {
+            today: d.today,
+            stepsLength: d.steps?.length,
+            activityLength: d.activity?.length
+          });
+          setData(d);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("[Activity] Error fetching data:", err);
+          setLoading(false);
+        });
+      return;
+    }
+    
     // If mode is 'total', send 'total' as param; if mode is 'today' and no date provided, send 'today'; otherwise send the date
     let url: string;
     if (mode === "total") {
@@ -81,9 +107,13 @@ export default function ActivityPageClient() {
       });
   };
 
-  // Initial data fetch - default to total mode
+  // Initial data fetch - default to total mode, but check for selected month
   useEffect(() => {
-    fetch("/api/fitness/summary?date=total")
+    const selectedMonth = localStorage.getItem("kkfit_selected_month");
+    const url = selectedMonth 
+      ? `/api/fitness/summary?month=${selectedMonth}` 
+      : "/api/fitness/summary?date=total";
+    fetch(url)
       .then((r) => r.json())
       .then((d) => {
         setData(d);
