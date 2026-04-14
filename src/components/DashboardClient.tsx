@@ -653,7 +653,7 @@ export default function DashboardClient() {
           
           {/* Month selector */}
           <select
-            value={selectedMode === "month" ? selectedMonth : ""}
+            value={selectedMonth}
             onChange={handleMonthChange}
             className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors appearance-none cursor-pointer ${
               selectedMode === "month"
@@ -668,7 +668,7 @@ export default function DashboardClient() {
               paddingRight: "2rem"
             }}
           >
-            <option value="">Mês</option>
+            <option value="">Selecione...</option>
             <option value="2026-04">Abril 2026</option>
             <option value="2026-03">Março 2026</option>
             <option value="2026-02">Fevereiro 2026</option>
