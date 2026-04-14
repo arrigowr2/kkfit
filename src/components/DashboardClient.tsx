@@ -204,7 +204,8 @@ function GoalsModal({
 }
 
 export default function DashboardClient() {
-  const [selectedMode, setSelectedMode] = useState<"today" | "yesterday" | "custom" | "total">("total");
+  const [selectedMode, setSelectedMode] = useState<"today" | "yesterday" | "custom" | "total" | "month">("total");
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [customDates, setCustomDates] = useState<string[]>([]);
   const [pendingDates, setPendingDates] = useState<string[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -223,7 +224,7 @@ export default function DashboardClient() {
   }, []);
 
   // Fetch data function (similar to ActivityPageClient)
-  const fetchData = useCallback(async (mode: string, dates?: string[]) => {
+  const fetchData = useCallback(async (mode: string, dates?: string[], month?: string) => {
     setIsLoading(true);
     setError(null);
     
@@ -231,6 +232,8 @@ export default function DashboardClient() {
       let url: string;
       if (mode === "total") {
         url = "/api/fitness/summary?date=total";
+      } else if (mode === "month" && month) {
+        url = `/api/fitness/summary?month=${month}`;
       } else if (mode === "today" && dates && dates.length > 0) {
         // Pass actual date from client (correct timezone) instead of "today"
         url = `/api/fitness/summary?date=${dates[0]}`;
@@ -243,7 +246,7 @@ export default function DashboardClient() {
         url = "/api/fitness/summary?date=total";
       }
       
-      console.log("[DashboardClient] Fetching:", { mode, dates, url });
+      console.log("[DashboardClient] Fetching:", { mode, dates, month, url });
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -313,10 +316,16 @@ export default function DashboardClient() {
     return result;
   }, []);
 
-  const handleQuickDate = useCallback((mode: "today" | "yesterday" | "custom" | "total") => {
+  const handleQuickDate = useCallback((mode: "today" | "yesterday" | "custom" | "total" | "month") => {
     setSelectedMode(mode);
     if (mode === "custom") {
       setShowDatePicker(true);
+    } else if (mode === "month") {
+      setCustomDates([]);
+      setPendingDates([]);
+      if (selectedMonth) {
+        fetchData("month", undefined, selectedMonth);
+      }
     } else {
       setCustomDates([]);
       setPendingDates([]);
@@ -334,7 +343,16 @@ export default function DashboardClient() {
         fetchData(mode);
       }
     }
-  }, [fetchData, getLocalDateStr]);
+  }, [fetchData, getLocalDateStr, selectedMonth]);
+
+  const handleMonthChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const monthValue = e.target.value;
+    setSelectedMonth(monthValue);
+    if (monthValue) {
+      setSelectedMode("month");
+      fetchData("month", undefined, monthValue);
+    }
+  }, [fetchData]);
 
   const handleDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const dateValue = e.target.value;
@@ -629,6 +647,38 @@ export default function DashboardClient() {
               </div>
             )}
           </div>
+          
+          {/* Month selector */}
+          <select
+            value={selectedMode === "month" ? selectedMonth : ""}
+            onChange={handleMonthChange}
+            className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors appearance-none cursor-pointer ${
+              selectedMode === "month"
+                ? "bg-blue-500 text-white"
+                : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+            }`}
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "right 0.5rem center",
+              backgroundSize: "1rem",
+              paddingRight: "2rem"
+            }}
+          >
+            <option value="">Mês</option>
+            <option value="2026-04">Abril 2026</option>
+            <option value="2026-03">Março 2026</option>
+            <option value="2026-02">Fevereiro 2026</option>
+            <option value="2026-01">Janeiro 2026</option>
+            <option value="2025-12">Dezembro 2025</option>
+            <option value="2025-11">Novembro 2025</option>
+            <option value="2025-10">Outubro 2025</option>
+            <option value="2025-09">Setembro 2025</option>
+            <option value="2025-08">Agosto 2025</option>
+            <option value="2025-07">Julho 2025</option>
+            <option value="2025-06">Junho 2025</option>
+            <option value="2025-05">Maio 2025</option>
+          </select>
         </div>
       </div>
 

@@ -23,10 +23,11 @@ export async function GET(request: Request) {
   const mode = searchParams.get("mode"); // "multiple" for multiple dates
   const datesParam = searchParams.get("dates"); // comma-separated dates for multiple mode
   const days = parseInt(searchParams.get("days") || "30");
+  const monthParam = searchParams.get("month"); // YYYY-MM format for monthly view
   
   // Debug logging
   console.log("[API Summary] Request URL:", request.url);
-  console.log("[API Summary] dateParam:", dateParam, "mode:", mode, "datesParam:", datesParam);
+  console.log("[API Summary] dateParam:", dateParam, "mode:", mode, "datesParam:", datesParam, "monthParam:", monthParam);
 
   // Check if requesting multiple dates (either in dateParam or datesParam)
   const isMultiple = mode === "multiple" && 
@@ -38,11 +39,23 @@ export async function GET(request: Request) {
   // Check if requesting today
   const isToday = dateParam === "today";
 
+  // Check if requesting a specific month
+  const isMonth = !!monthParam && /^\d{4}-\d{2}$/.test(monthParam);
+  
   // Determine the target date
   let targetDate: Date;
   let dateStr: string;
+  let numDays = 30;
 
-  if (isTotal) {
+  if (isMonth) {
+    // Month mode - get all data for a specific month
+    const [year, month] = monthParam.split('-').map(Number);
+    targetDate = new Date(year, month - 1, 1); // First day of month
+    dateStr = monthParam;
+    // Calculate number of days in the month
+    const lastDay = new Date(year, month, 0).getDate();
+    numDays = lastDay;
+  } else if (isTotal) {
     // Total - get all data, no specific date
     targetDate = new Date();
     dateStr = "";
@@ -164,6 +177,60 @@ export async function GET(request: Request) {
       sleepData = (sleepData || []).filter(d => d.date === todayStr);
       
       console.log("[API Summary] Today mode - Filtered steps data count:", stepsData.length);
+    } else if (isMonth) {
+      // Month mode - get all data for a specific month
+      const [year, month] = monthParam.split('-').map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
+      const lastDateOfMonth = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      
+      console.log("[API Summary] Month mode - monthParam:", monthParam, "numDays:", numDays, "lastDate:", lastDateOfMonth);
+      
+      [todayData, stepsData, caloriesData, heartRateData, sleepData, weightData, activityData] =
+        await Promise.all([
+          Promise.resolve({
+            steps: 0,
+            calories: 0,
+            activeMinutes: 0,
+            distance: 0
+          }),
+          safeGetData(() => getStepsData(session.accessToken!, numDays, lastDateOfMonth), "getStepsData"),
+          safeGetData(() => getCaloriesData(session.accessToken!, numDays, lastDateOfMonth), "getCaloriesData"),
+          safeGetData(() => getHeartRateData(session.accessToken!, numDays, lastDateOfMonth), "getHeartRateData"),
+          safeGetData(() => getSleepData(session.accessToken!, numDays, lastDateOfMonth), "getSleepData"),
+          safeGetData(() => getWeightData(session.accessToken!, 90, lastDateOfMonth), "getWeightData"),
+          safeGetData(() => getActivityData(session.accessToken!, numDays, lastDateOfMonth), "getActivityData"),
+        ]);
+      
+      // Filter data to only include days in the selected month
+      const [targetYear, targetMonth] = monthParam.split('-').map(Number);
+      const monthStart = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+      const monthEnd = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      const hrResultMonth = heartRateData as { data?: any[] };
+      const hrDataMonth = hrResultMonth?.data || heartRateData;
+      stepsData = (stepsData || []).filter(d => d.date >= monthStart && d.date <= monthEnd);
+      caloriesData = (caloriesData || []).filter(d => d.date >= monthStart && d.date <= monthEnd);
+      activityData = (activityData || []).filter(d => d.date >= monthStart && d.date <= monthEnd);
+      heartRateData = ((hrDataMonth as any) || []).filter((d: any) => d.date >= monthStart && d.date <= monthEnd);
+      sleepData = (sleepData || []).filter(d => d.date >= monthStart && d.date <= monthEnd);
+      
+      // Calculate the sum for todayData from the filtered data arrays
+      const sumSteps = (stepsData || []).reduce((sum, d) => sum + d.steps, 0);
+      const sumCalories = (caloriesData || []).reduce((sum, d) => sum + d.calories, 0);
+      const sumActivity = (activityData || []).reduce((sum, d) => sum + d.activeMinutes, 0);
+      const sumDistance = (activityData || []).reduce((sum, d) => sum + d.distance, 0);
+      
+      todayData = {
+        steps: sumSteps,
+        calories: sumCalories,
+        activeMinutes: sumActivity,
+        distance: sumDistance
+      };
+      
+      console.log("[API Summary] Month mode - Filtered data counts:", {
+        steps: stepsData?.length,
+        calories: caloriesData?.length,
+        sleep: sleepData?.length
+      });
     } else if (isMultiple) {
       // Multiple dates - comma-separated (use datesParam if available, fallback to dateParam)
       const datesSource = datesParam || dateParam || "";
@@ -242,6 +309,7 @@ export async function GET(request: Request) {
       targetDate: dateStr,
       isTotal,
       isToday,
+      isMonth,
       stepsCount: stepsData?.length,
       sleepCount: sleepData?.length,
       sleepData: sleepData
