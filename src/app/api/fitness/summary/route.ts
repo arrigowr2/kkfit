@@ -25,9 +25,11 @@ export async function GET(request: Request) {
   const days = parseInt(searchParams.get("days") || "30");
   const monthParam = searchParams.get("month"); // YYYY-MM format for monthly view
   
-  // Debug logging
   console.log("[API Summary] Request URL:", request.url);
   console.log("[API Summary] dateParam:", dateParam, "mode:", mode, "datesParam:", datesParam, "monthParam:", monthParam);
+
+  // Check if isMonth is being detected
+  console.log("[API Summary] isMonth check:", { monthParam, isMonthPattern: /^\d{4}-\d{2}$/.test(monthParam || "") });
 
   // Check if requesting multiple dates (either in dateParam or datesParam)
   const isMultiple = mode === "multiple" && 
@@ -48,6 +50,7 @@ export async function GET(request: Request) {
   let numDays = 30;
 
   if (isMonth) {
+    console.log("[API Summary] ENTERING MONTH MODE for:", monthParam);
     // Month mode - get all data for a specific month
     const [year, month] = monthParam.split('-').map(Number);
     targetDate = new Date(year, month - 1, 1); // First day of month

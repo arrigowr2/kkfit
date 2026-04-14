@@ -347,10 +347,12 @@ export default function DashboardClient() {
 
   const handleMonthChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const monthValue = e.target.value;
+    console.log("[DashboardClient] handleMonthChange called with:", monthValue);
     setSelectedMonth(monthValue);
     if (monthValue) {
       setSelectedMode("month");
       localStorage.setItem("kkfit_selected_month", monthValue);
+      console.log("[DashboardClient] Calling fetchData with month:", monthValue);
       fetchData("month", undefined, monthValue);
     } else {
       localStorage.removeItem("kkfit_selected_month");
